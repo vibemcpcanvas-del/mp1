@@ -2334,7 +2334,8 @@ function loadMap(name) {
     document.getElementById('search-dropdown').style.display = 'none';
     
     // 🔥 추가된 부분: 시뮬레이터(월드맵 포함) 진입 시 푸터 숨기기
-    document.getElementById('site-footer').style.display = 'none';
+    const footer = document.getElementById('site-footer');
+    if (footer) footer.style.display = 'none';
     
     clearPortals();
 
@@ -2471,7 +2472,8 @@ function goBack() {
         document.getElementById('worldmap-ui').style.display = 'none';
         document.getElementById('simulator-main').style.display = 'none';
         
-        document.getElementById('site-footer').style.display = 'flex';
+        const footer = document.getElementById('site-footer');
+        if (footer) footer.style.display = 'flex';
     }
     
     currentHoveredMap = null; 

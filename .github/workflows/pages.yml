@@ -36,21 +36,6 @@ jobs:
       - name: Build
         run: npm run build --workspace=apps/web
 
-      - name: Copy static asset directories to dist
-        run: |
-          cd apps/web
-          # Vite의 publicDir(public/)에 포함되지 않는 정적 에셋을 dist/로 복사
-          for dir in WorldMap images Hitbox bgm Skillicon charactericon icon; do
-            if [ -d "$dir" ]; then
-              echo "📁 복사 중: $dir"
-              cp -r "$dir" dist/
-            fi
-          done
-          # 단일 파일
-          [ -f favicon.png ] && cp favicon.png dist/
-          echo "✅ 에셋 복사 완료"
-          ls dist/
-
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

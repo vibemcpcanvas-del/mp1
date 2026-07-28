@@ -1,7 +1,14 @@
 {
-  "name": "maplebuild-monorepo",
+  "name": "mp1-monorepo",
   "private": true,
   "workspaces": [
-    "apps/*"
-  ]
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "extract-data": "node tools/extract-data.mjs",
+    "generate-tokens": "node tools/generate-css-vars.mjs"
+  }
 }

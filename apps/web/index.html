@@ -29,6 +29,8 @@
 
 
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Canvas 오버레이 + 센서 모듈 진입점 -->
+    <script type="module" src="/src/main.js"></script>
     
     <style>
         /* 스크롤바 숨김(스크롤 기능은 유지) → 페이지 이동 시 좌우 밀림 방지 */
@@ -853,12 +855,15 @@
     </div>
     
 </div>
-<div id="map-viewport" style="width: 100%; flex: 1; min-height: 0; margin: 15px 0; overflow: hidden; position: relative; border-radius: 4px; cursor: grab; background-color: #000; display: flex; justify-content: center; align-items: center;">
+    <div id="map-viewport" style="width: 100%; flex: 1; min-height: 0; margin: 15px 0; overflow: hidden; position: relative; border-radius: 4px; cursor: grab; background-color: #000; display: flex; justify-content: center; align-items: center;">
     <div id="simulator-spinner" class="map-loading-spinner"></div>
     
     <div class="map-container" id="map-container" style="position: relative; max-width: 100%; max-height: 100%; transform-origin: center center; cursor: crosshair; display: inline-block;">
         
         <img src="" id="map-background" draggable="false" style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; user-select: none; object-fit: contain;">
+        
+        <!-- Canvas 오버레이: 캐릭터 위치 추적 전용, DOM UI 조작 간섭 없음 -->
+        <canvas id="tracker-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;"></canvas>
         
     </div>
 </div>
@@ -5627,6 +5632,17 @@ const optionsStyle = skill.variants.length >= 3
 }
 // ⬆️ 여기까지 JS 교체 ⬆️
 </script>
+<!-- 센서 컨트롤 패널 (Canvas 오버레이 UI) -->
+<div id="sensor-panel" style="position: fixed; bottom: 16px; right: 16px; z-index: 9999; display: none; flex-direction: column; gap: 8px; align-items: flex-end;">
+    <div id="sensor-status" style="display: flex; align-items: center; gap: 6px; background: rgba(25,31,40,0.92); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 8px 14px; font-size: 12px; color: #f9fafb; backdrop-filter: blur(8px);">
+        <span id="sensor-status-dot" style="width:8px;height:8px;border-radius:50%;background:#6b7280;display:inline-block;"></span>
+        <span id="sensor-status-text">센서 대기 중</span>
+    </div>
+    <div style="display: flex; gap: 6px;">
+        <button id="sensor-toggle-btn" onclick="window._mp1SensorToggle && window._mp1SensorToggle()" style="padding: 7px 12px; background: rgba(25,31,40,0.92); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #f9fafb; font-size: 11px; cursor: pointer; backdrop-filter: blur(8px);">Mock 센서 켜기</button>
+        <button id="trail-toggle-btn" onclick="window._mp1TrailToggle && window._mp1TrailToggle()" style="padding: 7px 12px; background: rgba(25,31,40,0.92); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #f9fafb; font-size: 11px; cursor: pointer; backdrop-filter: blur(8px);">궤적 표시 ✓</button>
+    </div>
+</div>
 
 </body>
 </html>

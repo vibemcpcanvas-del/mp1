@@ -8,7 +8,6 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
-    "extract-data": "node tools/extract-data.mjs",
-    "generate-tokens": "node tools/generate-css-vars.mjs"
+    "extract-data": "node tools/extract-data.mjs"
   }
 }

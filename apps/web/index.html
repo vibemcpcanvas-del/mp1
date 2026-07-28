@@ -881,7 +881,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#b0b5c1">
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                 </svg>
-                <input type="range" id="bgm-volume" min="0" max="1" step="0.01" value="0.1" oninput="changeVolume(this.value)">
+                <input type="range" id="bgm-volume" min="0" max="1" step="0.01" value="0.5" oninput="changeVolume(this.value)">
             </div>
         </div>
     </div>
@@ -3223,14 +3223,22 @@ function playBGM(bgmUrl) {
     if (!audio) return; 
 
     // 슬라이더의 현재 값으로 볼륨 동기화
-    if(volumeSlider) audio.volume = volumeSlider.value;
+    if(volumeSlider) audio.volume = parseFloat(volumeSlider.value);
 
-    // 같은 곡이 이미 재생 중이면 다시 로드하지 않음
-    if (audio.getAttribute('src') === bgmUrl) return;
+    // 같은 곡이 이미 재생 중이면 다시 로드하지 않음 (절대/상대 경로 차이 감안)
+    const currentSrc = audio.getAttribute('src') || audio.src || "";
+    const cleanBgmUrl = bgmUrl.replace('./', '');
+    if (currentSrc.includes(cleanBgmUrl)) {
+        if (isBgmPlaying && audio.paused) {
+            audio.play().catch(e => console.log("자동 재생 정책으로 인해 클릭 후 재생됩니다.", e));
+        }
+        return;
+    }
 
     audio.src = bgmUrl;
+    audio.setAttribute('src', bgmUrl); // 명시적으로 attribute도 설정
     if (isBgmPlaying) {
-        audio.play().catch(e => console.log("자동 재생 정책으로 인해 클릭 후 재생됩니다."));
+        audio.play().catch(e => console.log("자동 재생 정책으로 인해 클릭 후 재생됩니다.", e));
     }
 }
 
@@ -3302,9 +3310,17 @@ function toggleBGM() {
     
     if(volumeSlider) audio.volume = volumeSlider.value;
 
-    if (!audio.getAttribute('src')) {
-        const music = RegionData[currentRegionName]?.bgm;
-        if(music) audio.src = music;
+    if (!audio.getAttribute('src') && !audio.src.includes('bgm')) {
+        let music = RegionData[currentRegionName]?.bgm;
+        // 지역 BGM이 없으면 첫 번째 사냥터의 BGM 사용
+        if (!music && RegionData[currentRegionName]?.huntingGrounds?.length > 0) {
+            music = RegionData[currentRegionName].huntingGrounds[0].bgm;
+        }
+        if(music) {
+            audio.src = music;
+        } else {
+            console.warn("BGM을 찾을 수 없습니다:", currentRegionName);
+        }
     }
 
     isBgmPlaying = !isBgmPlaying;

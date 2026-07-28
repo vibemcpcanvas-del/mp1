@@ -322,14 +322,7 @@
         ========================================= */
         .guide-bar { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 50px; padding: 0; margin-top: 15px; box-sizing: border-box; }
         
-        .bgm-controller { display: flex; align-items: center; background: #2b323e; border-radius: 100px; overflow: hidden; transition: 0.3s; min-height: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .bgm-controller button { background: transparent; color: #b0b8c1; border: none; padding: 0 16px; height: 40px; font-size: 13px; font-weight: 600; cursor: pointer; border-right: 1px solid rgba(255,255,255,0.05); transition: 0.3s; font-family: 'Pretendard Variable', 'Pretendard', sans-serif;}
-        #bgm-btn.playing { background: #d4ff00 !important; color: #111 !important; }
-        
-        .volume-slider-wrapper { display: flex; align-items: center; padding: 0 14px 0 12px; gap: 8px; }
-        #bgm-volume { -webkit-appearance: none; width: 60px; background: transparent; cursor: pointer; }
-        #bgm-volume::-webkit-slider-runnable-track { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; }
-        #bgm-volume::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: #fff; margin-top: -5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
 
         /* =========================================
            7. 포탈 & 툴팁 (부드러운 그림자)
@@ -442,30 +435,7 @@
         
         body.light-mode .back-btn { background: #f2f4f6; color: #4e5968; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
         body.light-mode .back-btn:hover { background: #e5e8eb; }
-        body.light-mode .bgm-controller { 
-            background: #ffffff; 
-            border: 1px solid rgba(0,0,0,0.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04); 
-        }
-        body.light-mode .bgm-controller button { 
-            color: #191f28; 
-            font-weight: 700;
-            border-right: 1px solid rgba(0,0,0,0.05); 
-        }
-        body.light-mode #bgm-btn.playing { 
-            background: #3182f6 !important; 
-            color: #ffffff !important; 
-        }
-        body.light-mode .volume-slider-wrapper svg { 
-            fill: #8b95a1; 
-        }
-        body.light-mode #bgm-volume::-webkit-slider-runnable-track { 
-            background: rgba(0,0,0,0.1); 
-        }
-        body.light-mode #bgm-volume::-webkit-slider-thumb { 
-            border: 1px solid rgba(0,0,0,0.08); 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08); 
-        }
+
 
         body.light-mode .lvl-btn { 
             background: #ffffff !important; 
@@ -683,18 +653,6 @@
             }
             .worldmap-header > :first-child {
                 grid-column: 1 !important;
-                grid-row: 1 !important;
-                justify-self: start !important;
-                flex: none !important;
-                margin: 0 !important;
-            }
-            .worldmap-header > h2 {
-                grid-column: 1 / -1 !important;
-                grid-row: 1 !important;
-                justify-self: center !important;
-                font-size: 16px !important;
-                margin: 0 !important;
-                pointer-events: none !important;
             }
             .worldmap-header > :last-child {
                 grid-column: 1 / -1 !important;
@@ -723,7 +681,7 @@
             /* 모바일: 빌드 저장하기 버튼을 중앙으로 */
             #save-build-btn { margin: 0 auto !important; }
             .guide-bar > div:last-of-type { justify-content: center !important; }
-            .bgm-controller { justify-content: center !important; width: 100% !important; box-sizing: border-box !important; }
+
             #hitbox-btn { justify-content: center !important; padding: 10px 0 !important; background-color: rgba(255, 255, 255, 0.05) !important; border-radius: 12px !important; width: 100% !important; box-sizing: border-box !important; }
             body.light-mode #hitbox-btn { background-color: #f2f4f6 !important; }
         }
@@ -875,15 +833,7 @@
     </div>
     
     <div style="display: flex; justify-content: center;">
-        <div class="bgm-controller">
-            <button id="bgm-btn" onclick="toggleBGM()">BGM 재생</button>
-            <div class="volume-slider-wrapper">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#b0b5c1">
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                </svg>
-                <input type="range" id="bgm-volume" min="0" max="1" step="0.01" value="0.5" oninput="changeVolume(this.value)">
-            </div>
-        </div>
+
     </div>
 
     <div style="flex: 1; display: flex; justify-content: flex-end;">
@@ -2390,7 +2340,7 @@ function clearPortals() {
 }
 
 function goBack() {
-    stopBGM(); 
+
     resetPlacement(); 
     currentZoom = 1; panX = 0; panY = 0; 
     
@@ -3217,30 +3167,7 @@ function toggleHitbox() {
     }
 }
 // 🎵 1. BGM 재생 통합 함수 (볼륨바 연동)
-function playBGM(bgmUrl) {
-    const audio = document.getElementById('bgm-player');
-    const volumeSlider = document.getElementById('bgm-volume');
-    if (!audio) return; 
 
-    // 슬라이더의 현재 값으로 볼륨 동기화
-    if(volumeSlider) audio.volume = parseFloat(volumeSlider.value);
-
-    // 같은 곡이 이미 재생 중이면 다시 로드하지 않음 (절대/상대 경로 차이 감안)
-    const currentSrc = audio.getAttribute('src') || audio.src || "";
-    const cleanBgmUrl = bgmUrl.replace('./', '');
-    if (currentSrc.includes(cleanBgmUrl)) {
-        if (isBgmPlaying && audio.paused) {
-            audio.play().catch(e => console.log("자동 재생 정책으로 인해 클릭 후 재생됩니다.", e));
-        }
-        return;
-    }
-
-    audio.src = bgmUrl;
-    audio.setAttribute('src', bgmUrl); // 명시적으로 attribute도 설정
-    if (isBgmPlaying) {
-        audio.play().catch(e => console.log("자동 재생 정책으로 인해 클릭 후 재생됩니다.", e));
-    }
-}
 
 function enterMap(hg) {
     resetPlacement(); 
@@ -3289,66 +3216,10 @@ isHitboxOn = false;
 
     imgEl.src = hg.mapImg;
 
-    // 🔥 사냥터 BGM 적용
-    const musicToPlay = hg.bgm;
-    if (musicToPlay) {
-        playBGM(musicToPlay);
-    }
+
 }
 
-// ⏸️ 3. BGM 재생/정지 토글 함수 (볼륨바 연동)
-let isBgmPlaying = false;
-function toggleBGM() {
-    const audio = document.getElementById('bgm-player');
-    const btn = document.getElementById('bgm-btn');
-    const volumeSlider = document.getElementById('bgm-volume');
-    
-    if (!audio) {
-        alert("BGM 플레이어 태그가 HTML에 없습니다!");
-        return;
-    }
-    
-    if(volumeSlider) audio.volume = volumeSlider.value;
 
-    if (!audio.getAttribute('src') && !audio.src.includes('bgm')) {
-        alert("사냥터 진입 후 BGM을 재생할 수 있습니다.");
-        return;
-    }
-
-    isBgmPlaying = !isBgmPlaying;
-    
-    if (isBgmPlaying) {
-        audio.play().catch(e => console.log("재생 오류: 브라우저가 자동재생을 막았습니다.", e));
-        btn.innerText = 'BGM 정지';
-        btn.classList.add('playing'); // JS 색상 강제 주입 대신 클래스 추가
-        btn.style.background = ''; // 기존 강제 스타일 제거
-        btn.style.color = '';
-    } else {
-        audio.pause();
-        btn.innerText = 'BGM 재생';
-        btn.classList.remove('playing');
-    }
-}
-
-// ⏹️ BGM 강제 종료 및 초기화 함수
-function stopBGM() {
-    const audio = document.getElementById('bgm-player');
-    const btn = document.getElementById('bgm-btn');
-    
-    if (audio) {
-        audio.pause();
-        audio.currentTime = 0; 
-    }
-    
-    isBgmPlaying = false; 
-    
-    if (btn) {
-        btn.innerText = 'BGM 재생';
-        btn.classList.remove('playing');
-        btn.style.background = '';
-        btn.style.color = '';
-    }
-}
 
 const JobDatabase = {
     "전사": [

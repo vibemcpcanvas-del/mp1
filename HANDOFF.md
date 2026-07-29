@@ -1,22 +1,102 @@
 # Handoff & Project Status
 
 ## 1. 완료된 작업 (Completed Tasks)
+
 - **AI Proxy 우회 및 고정 (`perplexity-webui-scraper`)**
-  - `completions.py`: 모델을 `anthropic/claude-sonnet-5-thinking`으로 강제 할당하도록 수정.
-  - `account.py`: 무료 티어 등급 검사에서 발생하는 `ModelAccessError`를 우회하도록 처리.
+  - `completions.py`: 모델을 `anthropic/claude-sonnet-5-thinking`으로 강제 할당
+  - `account.py`: `ModelAccessError` 우회 처리
+
 - **메이플 캔버스 오류 수정 (`apps/web/index.html`)**
-  - 이전 커밋에서 센서 패널 주입 중 실수로 삭제되었던 4,400여 줄의 인라인 자바스크립트(사냥터/직업/스킬 데이터 및 UI 연동 로직)를 완벽히 복구.
-  - 사냥터 진입 버튼, 직업 스킬 선택 버튼 등 UI 정상화 확인.
-- **모노레포 Git 환경 구축**
-  - 루트 `.gitignore` 생성 및 모노레포 구조를 Github `mp1` 저장소의 `main` 브랜치에 연동 및 푸시 완료.
-  - `apps/web`은 기존 `.github/workflows/pages.yml`에 의해 자동으로 Github Pages 배포 연동됨.
+  - 삭제된 4,400여 줄 인라인 JS 복구 (사냥터/직업/스킬 데이터 및 UI 로직)
+  - 인코딩 오염(C1 제어문자, EUC-KR/UTF-8 혼재) 수정 → Vite 빌드 정상화
+  - 버튼 인자와 RegionData 키 불일치 수정 → 어센틱 삼풀 지역 버튼 정상화
 
-## 2. 향후 과제 및 고민 포인트 (Next Steps & To-Dos)
-- **AI Proxy CI/CD 및 아키텍처 고민**
-  - 프록시 서버(`perplexity-webui-scraper`)를 Github Actions 등을 이용해 CI/CD로 띄울지 논의함.
-  - 당장 구축하기보다는 모노레포 아키텍처 관점에서 프록시가 **"인공지능 모델(Model) 영역을 전담하는 백엔드 마이크로서비스"**로서 어떤 구조를 가져야 할지 좀 더 구체화(고민)한 후 진행하기로 홀드(Hold)됨.
-  - 향후 확정 시 해당 프록시를 클라우드나 터널링 방식 등으로 띄워 웹 프론트엔드(`apps/web`)와 연동할 수 있도록 설계 필요.
+- **모노레포 Git 환경**
+  - `vibemcpcanvas-del/mp1` GitHub 저장소 `main` 브랜치 연동
+  - `apps/web` → `.github/workflows/pages.yml` 기반 GitHub Pages 자동 CI/CD 동작 중
 
-## 3. 구조 요약 (Repository Structure)
-- `/apps/web/`: 메이플스토리 사냥터 배치 시뮬레이터 (프론트엔드 UI, Github Pages 자동 배포)
-- `/perplexity-webui-scraper/`: Claude/Perplexity 스크래핑을 통한 AI 프록시 API (현재 모델 강제 할당 및 우회 로직 적용됨)
+- **센서 계층 전체 구현 완료**
+  - `CoordinateSensor.js`, `MockSensor.js`, `PositionFilter.js`, `WebSocketSensor.js`
+  - `CoordinateMapper.js`, `Calibration.js` 로직 완료
+
+---
+
+## 2. 로드맵 (Next Steps)
+
+> 명세서 v1.2 기준. Figma 파이프라인(구 §7)은 제거됨.
+
+### 단계 3 — Renderer + 레이어 전체 + 디자인 토큰
+**파일 변경 목록:**
+
+| 작업 | 파일 | 내용 |
+|------|------|------|
+| [NEW] | `apps/web/src/canvas/layers/MapLayer.js` | 사냥터 배경 이미지 Canvas 렌더링. `map-bg` 토큰으로 로딩 전 배경. `setImage(url)` 비동기 로드 |
+| [NEW] | `apps/web/src/canvas/layers/HitboxLayer.js` | 히트박스 JSON 배열 → Canvas 렌더링. `hitbox-stroke`/`hitbox-fill` 토큰. `setHitboxes(arr)` / `clear()` |
+| [MODIFY] | `apps/web/src/canvas/Renderer.js` | 레이어 순서: `MapLayer → HitboxLayer → PlayerLayer`. `mp1:mapExited` 시 `_resizeObserver.disconnect()` 누수 수정 |
+| [FIX] | `apps/web/src/canvas/layers/PlayerLayer.js` | Trail 버그: `_trail.push()` 를 `render()` 안이 아닌 `onPosition()` 호출 시점에만 수행 |
+| [MODIFY] | `packages/design-tokens/tokens.json` | 상태 dot 색상(`status-connected/reconnecting/disconnected`), 마커 반지름, 트레일 선 굵기 토큰 추가 |
+
+커밋 메시지:
+```
+feat: [단계3] MapLayer — 배경 이미지 렌더링
+feat: [단계3] HitboxLayer — 히트박스 Canvas 렌더링
+feat: [단계3] Renderer 레이어 스택 완성 + ResizeObserver 누수 수정
+fix:  [단계3] PlayerLayer trail 버그 수정 (60fps → 센서 속도)
+feat: [단계3] tokens.json 확장
+```
+
+---
+
+### 단계 4 — MapManager 보완 + main.js 연결
+
+| 작업 | 파일 | 내용 |
+|------|------|------|
+| [MODIFY] | `packages/core/src/MapManager.js` | `hitboxImg`→`hitboxDataUrl` 필드 정규화(regions.json 수정 없이). `setRegion()` 히트박스 JSON `fetch()` 비동기 로딩 추가. `regionChanged` 이벤트에 hitboxes 포함 |
+| [MODIFY] | `apps/web/src/main.js` | `WebSocketSensor.onRegionChange` → `mapManager.setRegion()` 연결. `mp1:mapExited` 정리 로직 보완(누수 제거). `huntingGroundChanged` → `renderer.onRegionChange()` 연결 |
+
+커밋 메시지:
+```
+feat: [단계4] MapManager 히트박스 비동기 로딩 + 필드명 정규화
+fix:  [단계4] main.js WS regionChange 연결 + 누수 수정
+```
+
+---
+
+### 단계 6 — Calibration UI 연결
+
+| 작업 | 파일 | 내용 |
+|------|------|------|
+| [MODIFY] | `apps/web/src/main.js` | 캘리브레이션 모드 버튼 → Canvas 클릭으로 `Calibration.addPoint()` 수집. 2점 완료 시 인디케이터. `WebSocketSensor` 수신 좌표에 `calibration.apply()` 적용 |
+
+커밋 메시지:
+```
+feat: [단계6] Calibration UI 연결 (2점 보정 모드)
+```
+
+---
+
+## 3. 오픈 퀘스천 (구현 전 확인 필요)
+
+> ⚠️ 아래 항목은 확인 전 임의 구현 금지
+
+1. **히트박스 JSON** (`apps/web/src/data/hitboxes/*.json`) — 이미 존재하는 파일이 있나요, 아니면 이번에 새로 만들어야 하나요? (Figma 파이프라인 제거 이후 소스 불명)
+2. **배경 이미지** (`hg.mapImg = ./images/Cernium/Cernium_1.webp` 등) — `apps/web/public/` 하위에 실제로 있나요?
+3. **Calibration UI 위치** — 기존 `sensor-panel` 안에 버튼 추가 vs 별도 패널 분리?
+
+---
+
+## 4. 구조 요약 (Repository Structure)
+
+```
+mp1/
+├── apps/web/          ← 메이플스토리 캔버스 시뮬레이터 (GitHub Pages 자동 배포)
+│   └── src/
+│       ├── main.js
+│       ├── canvas/    ← Renderer + 레이어 (단계3에서 완성 예정)
+│       └── data/      ← regions.json, hitboxes/
+├── packages/
+│   ├── sensors/       ← ✅ 완료
+│   ├── core/          ← 부분 완료 (MapManager 보완 필요)
+│   └── design-tokens/ ← tokens.json (단계3에서 확장 예정)
+└── perplexity-webui-scraper/  ← AI 프록시 (모델 영역, CI/CD 미정)
+```

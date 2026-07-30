@@ -77,7 +77,9 @@ function hookLegacyMapEvents() {
     renderer.start();
 
     const panel = document.getElementById('sensor-panel');
+    const divider = document.getElementById('mp1-control-divider');
     if (panel) panel.style.display = 'flex';
+    if (divider) divider.style.display = 'flex';
 
     if (activeSensor && sensorRunning) {
       activeSensor.stop();
@@ -98,7 +100,9 @@ function hookLegacyMapEvents() {
       sensorRunning = false;
     }
     const panel = document.getElementById('sensor-panel');
+    const divider = document.getElementById('mp1-control-divider');
     if (panel) panel.style.display = 'none';
+    if (divider) divider.style.display = 'none';
 
     updateSensorUI('disconnected', 'Mock 센서 켜기');
   });

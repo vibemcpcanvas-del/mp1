@@ -58,6 +58,10 @@ export class MapManager extends EventTarget {
    * @param {object} huntingGround - regions.json의 huntingGrounds 항목
    */
   setHuntingGround(huntingGround) {
+    // 별칭 처리 (Opus 검토 결과)
+    huntingGround.backgroundImageUrl = huntingGround.backgroundImageUrl || huntingGround.mapImg;
+    huntingGround.hitboxDataUrl = huntingGround.hitboxDataUrl || huntingGround.hitboxImg;
+
     this._currentHuntingGround = huntingGround;
 
     // 사냥터의 실제 치수로 매퍼 생성

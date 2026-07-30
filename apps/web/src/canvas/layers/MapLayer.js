@@ -54,7 +54,7 @@ export class MapLayer {
         // mapper.map(worldX, worldY)는 화면 좌표를 줌.
         // 배경 이미지는 (0,0)에서 (worldWidth, worldHeight)까지.
         const p1 = mapper.map(0, 0);
-        const p2 = mapper.map(mapper.worldW, mapper.worldH);
+        const p2 = mapper.map(mapper.worldWidth, mapper.worldHeight);
         
         ctx.drawImage(
           this._bgImage, 

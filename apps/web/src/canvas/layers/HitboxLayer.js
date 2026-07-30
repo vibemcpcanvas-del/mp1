@@ -44,7 +44,7 @@ export class HitboxLayer {
       const mapper = mapManager.mapper;
       if (mapper) {
         const p1 = mapper.map(0, 0);
-        const p2 = mapper.map(mapper.worldW, mapper.worldH);
+        const p2 = mapper.map(mapper.worldWidth, mapper.worldHeight);
         
         ctx.save();
         ctx.globalAlpha = 0.6; // 히트박스는 반투명 오버레이

@@ -8,6 +8,8 @@
  * @module canvas/Renderer
  */
 import { PlayerLayer } from './layers/PlayerLayer.js';
+import { MapLayer } from './layers/MapLayer.js';
+import { HitboxLayer } from './layers/HitboxLayer.js';
 
 export class Renderer {
   /**
@@ -20,7 +22,7 @@ export class Renderer {
     this._mapManager = mapManager;
 
     /** @type {Array<{ render: Function }>} 레이어 배열 (확장 가능 구조) */
-    this._layers = [new PlayerLayer()];
+    this._layers = [new MapLayer(), new HitboxLayer(), new PlayerLayer()];
 
     /** 최신 수신 위치 (월드좌표) */
     this._latestPos = null;
@@ -38,7 +40,17 @@ export class Renderer {
     this._onResize();
   }
 
-  get playerLayer() { return this._layers[0]; }
+  destroy() {
+    this.stop();
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+  }
+
+  get mapLayer() { return this._layers[0]; }
+  get hitboxLayer() { return this._layers[1]; }
+  get playerLayer() { return this._layers[2]; }
 
   /**
    * 센서에서 새 좌표 수신 (렌더 루프와 분리)
@@ -46,6 +58,11 @@ export class Renderer {
    */
   onPosition(pos) {
     this._latestPos = pos;
+    const mapper = this._mapManager.mapper;
+    if (mapper && pos) {
+      const target = mapper.map(pos.x, pos.y);
+      this.playerLayer.onPosition(target.px, target.py);
+    }
   }
 
   /** 렌더 루프 시작 */
@@ -96,7 +113,7 @@ export class Renderer {
         py: this._currentScreen.py,
         confidence: this._latestPos.confidence ?? 1.0,
       };
-      this._layers.forEach(layer => layer.render(this._ctx, screenPos));
+      this._layers.forEach(layer => layer.render(this._ctx, screenPos, this._mapManager));
     }
 
     this._rafId = requestAnimationFrame(t => this._loop(t));
@@ -125,5 +142,11 @@ export class Renderer {
     this.playerLayer.clearTrail();
     this._currentScreen = null;
     this._latestPos = null;
+    
+    const hg = this._mapManager.currentHG;
+    if (hg) {
+      this.mapLayer.setImage(hg.backgroundImageUrl || hg.mapImg);
+      this.hitboxLayer.setImage(hg.hitboxDataUrl || hg.hitboxImg);
+    }
   }
 }

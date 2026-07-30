@@ -16,6 +16,16 @@ export class PlayerLayer {
   }
 
   /**
+   * 센서에서 새 좌표를 수신했을 때 (렌더 루프와 독립적)
+   */
+  onPosition(px, py) {
+    this._trail.push({ x: px, y: py });
+    if (this._trail.length > MAX_TRAIL) {
+      this._trail.shift();
+    }
+  }
+
+  /**
    * Renderer가 호출하는 렌더 메서드
    * @param {CanvasRenderingContext2D} ctx
    * @param {{ px: number, py: number, confidence: number } | null} playerScreen - 화면 좌표
@@ -24,12 +34,6 @@ export class PlayerLayer {
     if (!playerScreen) return;
 
     const { px, py, confidence = 1.0 } = playerScreen;
-
-    // 궤적 업데이트
-    this._trail.push({ x: px, y: py });
-    if (this._trail.length > MAX_TRAIL) {
-      this._trail.shift();
-    }
 
     // ── 궤적(trail) 렌더링 ──────────────────────
     if (this.showTrail && this._trail.length > 1) {

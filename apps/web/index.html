@@ -810,7 +810,26 @@
     
     <div style="flex: 1; display: flex; justify-content: flex-end;">
         <button id="reset-btn-header" class="reset-btn" onclick="resetPlacement()" style="display: none; background: #f04452; color: #ffffff; border: none; padding: 10px 18px; font-size: 14px; font-weight: 600; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(240, 68, 82, 0.3);">배치 초기화</button>
-</div>
+    </div>
+</div> <!-- /map-header -->
+
+    <div id="gl-container" style="flex: 1; min-height: 0; width: 100%; height: 100%;"></div>
+
+    <!-- 숨겨진 원본 DOM 요소들 -->
+    <div id="gl-source-elements" style="display: none;">
+
+        <!-- Top: Vision Monitor -->
+        <div id="vision-viewport" data-display="flex" style="width: 100%; height: 100%; overflow: hidden; position: relative; background-color: #0d1015; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div id="vision-standby" style="position: absolute; display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.4);">
+                <div style="font-size: 20px; font-weight: 900; letter-spacing: 2px;">NO SIGNAL</div>
+                <div style="font-size: 11px; margin-top: 6px;">실시간 게임 화면을 연결하세요.</div>
+                <button onclick="window._mp1StartScreenShare && window._mp1StartScreenShare()" style="margin-top: 12px; padding: 6px 14px; border-radius: 6px; background: #3182f6; color: #fff; border: none; cursor: pointer; font-weight: 700; font-size: 12px; transition: 0.2s;">화면공유 켜기</button>
+            </div>
+            <video id="game-screen-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: contain; display: none;"></video>
+            <canvas id="vision-overlay-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></canvas>
+        </div>
+
+        <div id="map-viewport-wrapper" data-display="flex" style="width: 100%; height: 100%; display: flex; flex-direction: column; background: #1a1e24;">
         <!-- Toolbar -->
         <div id="workspace-toolbar" style="display: flex; gap: 8px; align-items: center; justify-content: center; background: #202632; padding: 6px; border-radius: 8px; flex-shrink: 0; margin: 8px 15px;">
             <button id="tool-select-btn" onclick="window._mp1SelectTool('select')" class="tool-btn active" style="padding: 6px 14px; border-radius: 6px; background: #3182f6; color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 700; transition: 0.2s;">기본 (이동)</button>
@@ -1005,6 +1024,8 @@
     <div class="skill-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 0; min-height: 52px;">
         <!-- 이벤트 스킬 비움 (빈 공간) -->
     </div>
+            </div> <!-- /skill-sidebar -->
+        </div> <!-- /skill-sidebar-content -->
     
     </div> <!-- /gl-source-elements -->
 <!-- ⬆️ 여기까지 덮어쓰기 ⬆️ -->

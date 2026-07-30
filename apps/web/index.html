@@ -810,24 +810,9 @@
     
     <div style="flex: 1; display: flex; justify-content: flex-end;">
         <button id="reset-btn-header" class="reset-btn" onclick="resetPlacement()" style="display: none; background: #f04452; color: #ffffff; border: none; padding: 10px 18px; font-size: 14px; font-weight: 600; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(240, 68, 82, 0.3);">배치 초기화</button>
-    </div>
-    
 </div>
-    <div id="workspace-container" style="width: 100%; flex: 1; min-height: 0; margin: 15px 0; display: flex; flex-direction: column; gap: 10px;">
-        
-        <!-- Top: Vision Monitor -->
-        <div id="vision-viewport" style="flex: 0.45; overflow: hidden; position: relative; border-radius: 4px; background-color: #0d1015; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div id="vision-standby" style="position: absolute; display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.4);">
-                <div style="font-size: 20px; font-weight: 900; letter-spacing: 2px;">NO SIGNAL</div>
-                <div style="font-size: 11px; margin-top: 6px;">실시간 게임 화면을 연결하세요.</div>
-                <button onclick="window._mp1StartScreenShare && window._mp1StartScreenShare()" style="margin-top: 12px; padding: 6px 14px; border-radius: 6px; background: #3182f6; color: #fff; border: none; cursor: pointer; font-weight: 700; font-size: 12px; transition: 0.2s;">화면공유 켜기</button>
-            </div>
-            <video id="game-screen-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: contain; display: none;"></video>
-            <canvas id="vision-overlay-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></canvas>
-        </div>
-
         <!-- Toolbar -->
-        <div id="workspace-toolbar" style="display: flex; gap: 8px; align-items: center; justify-content: center; background: #202632; padding: 6px; border-radius: 8px; flex-shrink: 0;">
+        <div id="workspace-toolbar" style="display: flex; gap: 8px; align-items: center; justify-content: center; background: #202632; padding: 6px; border-radius: 8px; flex-shrink: 0; margin: 8px 15px;">
             <button id="tool-select-btn" onclick="window._mp1SelectTool('select')" class="tool-btn active" style="padding: 6px 14px; border-radius: 6px; background: #3182f6; color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 700; transition: 0.2s;">기본 (이동)</button>
             <button id="tool-pin-btn" onclick="window._mp1SelectTool('pin')" class="tool-btn" style="padding: 6px 14px; border-radius: 6px; background: transparent; color: #b0b8c1; border: none; cursor: pointer; font-size: 13px; font-weight: 700; transition: 0.2s;">📍 핀 (기준점 맵핑)</button>
             <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 4px;"></div>
@@ -835,7 +820,7 @@
         </div>
 
         <!-- Bottom: Map Viewport (기존) -->
-        <div id="map-viewport" style="flex: 0.55; overflow: hidden; position: relative; border-radius: 4px; cursor: grab; background-color: #000; display: flex; justify-content: center; align-items: center;">
+        <div id="map-viewport" style="flex: 1; min-height: 0; overflow: hidden; position: relative; border-radius: 4px; cursor: grab; background-color: #000; display: flex; justify-content: center; align-items: center; margin: 0 15px;">
             <div id="simulator-spinner" class="map-loading-spinner"></div>
             
             <div class="map-container" id="map-container" style="position: relative; max-width: 100%; max-height: 100%; transform-origin: center center; cursor: crosshair; display: inline-block;">
@@ -844,7 +829,6 @@
                 <canvas id="tracker-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></canvas>
             </div>
         </div>
-    </div>
                     
 <div class="guide-bar" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 50px; flex-shrink: 0; padding: 0; margin-top: 0; box-sizing: border-box;">
     
@@ -864,8 +848,103 @@
     
 </div>
             </div> </div>
-            
-<div class="skill-sidebar" id="skill-sidebar" style="display: none; overflow-y: auto; overflow-x: hidden;">
+        </div> <!-- /map-viewport-wrapper -->
+
+        <!-- MP1 Controls Wrapper -->
+        <div id="mp1-controls-wrapper" data-display="flex" style="width: 100%; height: 100%; display: flex; flex-direction: column; background: #1a1e24; overflow-y: auto;">
+            <!-- Sensor Panel -->
+            <div id="sensor-panel" style="
+                display: flex;
+                background: #202632;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 12px;
+                padding: 14px 16px;
+                gap: 10px;
+                flex-direction: column;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
+                margin: 10px;
+            ">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="sensor-status-dot" style="width:10px; height:10px; border-radius:50%; background:#6b7280; flex-shrink:0;"></span>
+                    <span id="sensor-status-text" style="font-size:13px; color:#b0b8c1; font-weight:600;">센서 대기 중</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button id="sensor-mock-btn"
+                        onclick="window._mp1SetSensorMode('mock')"
+                        class="active"
+                        style="flex:1; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
+                    >Mock</button>
+                    <button id="sensor-ws-btn"
+                        onclick="window._mp1SetSensorMode('ws')"
+                        style="flex:1; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
+                    >WS</button>
+                </div>
+                <button id="sensor-toggle-btn"
+                    onclick="window._mp1SensorToggle()"
+                    style="width:100%; padding:8px 0; font-size:13px; font-weight:700; border:none; border-radius:10px; cursor:pointer; background:#3182f6; color:#fff; transition:0.2s;"
+                >Mock 센서 켜기</button>
+                <button id="trail-toggle-btn"
+                    onclick="window._mp1TrailToggle()"
+                    style="width:100%; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
+                >궤적 숨기기</button>
+                <div style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; margin-top: 4px; margin-bottom: 4px;"></div>
+                <button id="calibration-btn"
+                    onclick="window._mp1CalibrationStart && window._mp1CalibrationStart()"
+                    style="width:100%; padding:8px 0; font-size:13px; font-weight:700; border:none; border-radius:10px; cursor:pointer; background:#f59e0b; color:#1a1a2e; transition:0.2s;"
+                >🎯 캘리브레이션</button>
+            </div>
+
+            <!-- Calibration Panel -->
+            <div id="calibration-panel" style="
+                display: none;
+                background: #202632;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 12px;
+                padding: 16px;
+                flex-direction: column;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
+                margin: 10px;
+            ">
+                <div style="font-size:14px; color:#fff; font-weight:700; margin-bottom:8px;">🎯 캘리브레이션 모드</div>
+                <div style="font-size:12px; color:#9ca3af; line-height:1.4; margin-bottom:12px;">
+                    상단 비디오에서 캐릭터 위치 클릭 후,<br>
+                    하단 맵에서 동일 위치를 클릭하세요.
+                </div>
+
+                <!-- Point 1 -->
+                <div style="background:#2b323e; border-radius:10px; padding:10px; margin-bottom:8px;">
+                    <div style="font-size:12px; font-weight:600; color:#b0b8c1; margin-bottom:6px;">1번 기준점</div>
+                    <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:4px;">
+                        <span>Vision:</span><span id="cal-p1-vision">(미캡처)</span>
+                    </div>
+                    <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span>World:</span><span id="cal-p1-world">(미클릭)</span>
+                    </div>
+                </div>
+
+                <!-- Point 2 -->
+                <div style="background:#2b323e; border-radius:10px; padding:10px; margin-bottom:12px;">
+                    <div style="font-size:12px; font-weight:600; color:#b0b8c1; margin-bottom:6px;">2번 기준점</div>
+                    <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:4px;">
+                        <span>Vision:</span><span id="cal-p2-vision">(미캡처)</span>
+                    </div>
+                    <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span>World:</span><span id="cal-p2-world">(미클릭)</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px;">
+                    <button id="cal-done-btn" disabled onclick="window._mp1CalibrationDone()" style="flex:2; padding:8px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:not-allowed; background:#1e40af; color:#9ca3af;">완료</button>
+                    <button id="cal-cancel-btn" onclick="window._mp1CalibrationCancel()" style="flex:1; padding:8px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#ef4444; color:#fff;">취소</button>
+                </div>
+            </div>
+        </div> <!-- /mp1-controls-wrapper -->
+
+        <!-- Skills Sidebar Wrapper -->
+        <div id="skill-sidebar-content" data-display="block" style="width: 100%; height: 100%; background: #1a1e24; overflow-y: auto;">
+            <div class="skill-sidebar" style="display: block; width: 100%; height: 100%; box-sizing: border-box; background: transparent; border: none;">
     <div style="margin-bottom: 15px;"><h4 style="margin:0; font-size: 16px;">공용 스킬</h4></div>
     
 <div class="skill-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px;">
@@ -927,109 +1006,7 @@
         <!-- 이벤트 스킬 비움 (빈 공간) -->
     </div>
     
-    <!-- MP1 센서 및 캘리브레이션 패널 (사이드바 내장) -->
-    <div class="sidebar-divider" id="mp1-control-divider" style="display: none;">
-        <h4 style="margin:0; font-size: 16px;">MP1 컨트롤</h4>
-    </div>
-
-    <style>
-        #sensor-mock-btn.active,
-        #sensor-ws-btn.active {
-            background: #3182f6 !important;
-            color: #fff !important;
-        }
-    </style>
-
-    <!-- Sensor Panel -->
-    <div id="sensor-panel" style="
-        display: none;
-        background: #202632;
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px;
-        padding: 14px 16px;
-        gap: 10px;
-        flex-direction: column;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
-        margin-bottom: 12px;
-    ">
-        <div style="display:flex; align-items:center; gap:8px;">
-            <span id="sensor-status-dot" style="width:10px; height:10px; border-radius:50%; background:#6b7280; flex-shrink:0;"></span>
-            <span id="sensor-status-text" style="font-size:13px; color:#b0b8c1; font-weight:600;">센서 대기 중</span>
-        </div>
-        <div style="display:flex; gap:6px;">
-            <button id="sensor-mock-btn"
-                onclick="window._mp1SetSensorMode('mock')"
-                class="active"
-                style="flex:1; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
-            >Mock</button>
-            <button id="sensor-ws-btn"
-                onclick="window._mp1SetSensorMode('ws')"
-                style="flex:1; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
-            >WS</button>
-        </div>
-        <button id="sensor-toggle-btn"
-            onclick="window._mp1SensorToggle()"
-            style="width:100%; padding:8px 0; font-size:13px; font-weight:700; border:none; border-radius:10px; cursor:pointer; background:#3182f6; color:#fff; transition:0.2s;"
-        >Mock 센서 켜기</button>
-        <button id="trail-toggle-btn"
-            onclick="window._mp1TrailToggle()"
-            style="width:100%; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
-        >궤적 숨기기</button>
-        <div style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; margin-top: 4px; margin-bottom: 4px;"></div>
-        <button id="calibration-btn"
-            onclick="window._mp1CalibrationStart && window._mp1CalibrationStart()"
-            style="width:100%; padding:8px 0; font-size:13px; font-weight:700; border:none; border-radius:10px; cursor:pointer; background:#f59e0b; color:#1a1a2e; transition:0.2s;"
-        >🎯 캘리브레이션</button>
-    </div>
-
-    <!-- Calibration Panel -->
-    <div id="calibration-panel" style="
-        display: none;
-        background: #202632;
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px;
-        padding: 16px;
-        flex-direction: column;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
-    ">
-        <div style="font-size:14px; color:#fff; font-weight:700; margin-bottom:8px;">🎯 캘리브레이션 모드</div>
-        <div style="font-size:12px; color:#9ca3af; line-height:1.4; margin-bottom:12px;">
-            게임 내 캐릭터를 랜드마크(포탈 등)에 세운 뒤,<br>
-            [캡처] → 맵 클릭 순서로 2쌍을 지정하세요.
-        </div>
-
-        <!-- Point 1 -->
-        <div style="background:#2b323e; border-radius:10px; padding:10px; margin-bottom:8px;">
-            <div style="font-size:12px; font-weight:600; color:#b0b8c1; margin-bottom:6px;">1번 기준점</div>
-            <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:4px;">
-                <span>Vision:</span><span id="cal-p1-vision">(미캡처)</span>
-            </div>
-            <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:8px;">
-                <span>World:</span><span id="cal-p1-world">(미클릭)</span>
-            </div>
-            <button id="cal-cap1-btn" onclick="window._mp1CalibrationCapture(1)" style="width:100%; padding:6px 0; font-size:11px; font-weight:600; border:none; border-radius:6px; cursor:pointer; background:#374151; color:#fff;">1번 캡처</button>
-        </div>
-
-        <!-- Point 2 -->
-        <div style="background:#2b323e; border-radius:10px; padding:10px; margin-bottom:12px;">
-            <div style="font-size:12px; font-weight:600; color:#b0b8c1; margin-bottom:6px;">2번 기준점</div>
-            <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:4px;">
-                <span>Vision:</span><span id="cal-p2-vision">(미캡처)</span>
-            </div>
-            <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:8px;">
-                <span>World:</span><span id="cal-p2-world">(미클릭)</span>
-            </div>
-            <button id="cal-cap2-btn" onclick="window._mp1CalibrationCapture(2)" style="width:100%; padding:6px 0; font-size:11px; font-weight:600; border:none; border-radius:6px; cursor:pointer; background:#374151; color:#fff;">2번 캡처</button>
-        </div>
-
-        <div style="display:flex; gap:8px;">
-            <button id="cal-done-btn" disabled onclick="window._mp1CalibrationDone()" style="flex:2; padding:8px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:not-allowed; background:#1e40af; color:#9ca3af;">완료</button>
-            <button id="cal-cancel-btn" onclick="window._mp1CalibrationCancel()" style="flex:1; padding:8px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#ef4444; color:#fff;">취소</button>
-        </div>
-    </div>
-</div>
+    </div> <!-- /gl-source-elements -->
 <!-- ⬆️ 여기까지 덮어쓰기 ⬆️ -->
 </div> </div> </div> 
 

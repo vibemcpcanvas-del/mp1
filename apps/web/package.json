@@ -9,5 +9,8 @@
   },
   "devDependencies": {
     "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "golden-layout": "^2.6.0"
   }
 }

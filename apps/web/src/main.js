@@ -12,6 +12,7 @@ import { WebSocketSensor } from '@sensors/WebSocketSensor.js';
 import { MapManager } from '@core/MapManager.js';
 import { Renderer } from './canvas/Renderer.js';
 import { VisionRenderer } from './canvas/VisionRenderer.js';
+import { initLayout } from './core/LayoutManager.js';
 import regionsData from './data/regions.json';
 
 // ─── 상태 ─────────────────────────────────────────────────────
@@ -52,6 +53,13 @@ function hookLegacyMapEvents() {
         window.dispatchEvent(new CustomEvent('mp1:mapEntered', {
           detail: { huntingGround }
         }));
+        
+        if (!window._glInitialized) {
+          setTimeout(() => {
+            initLayout();
+            window._glInitialized = true;
+          }, 100); // 렌더링 안정화를 위해 지연
+        }
       };
 
       const origGoBack = window.goBack;

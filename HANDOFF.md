@@ -7,39 +7,44 @@
   - `account.py`: `ModelAccessError` 우회 처리
 
 - **메이플 캔버스 오류 수정 (`apps/web/index.html`)**
-  - 삭제된 4,400여 줄 인라인 JS 복구 (사냥터/직업/스킬 데이터 및 UI 로직)
-  - 인코딩 오염(C1 제어문자, EUC-KR/UTF-8 혼재) 수정 → Vite 빌드 정상화
-  - 버튼 인자와 RegionData 키 불일치 수정 → 어센틱 삼풀 지역 버튼 정상화
+  - 삭제된 4,400여 줄 인라인 JS 복구
+  - 인코딩 오염 수정 → Vite 빌드 정상화
+  - 버튼 인자 ↔ RegionData 키 불일치 수정 → 전체 버튼 정상화
 
 - **모노레포 Git 환경**
-  - `vibemcpcanvas-del/mp1` GitHub 저장소 `main` 브랜치 연동
-  - `apps/web` → `.github/workflows/pages.yml` 기반 GitHub Pages 자동 CI/CD 동작 중
+  - `vibemcpcanvas-del/mp1` GitHub Pages 자동 CI/CD 동작 중
 
 - **센서 계층 전체 구현 완료**
-  - `CoordinateSensor.js`, `MockSensor.js`, `PositionFilter.js`, `WebSocketSensor.js`
-  - `CoordinateMapper.js`, `Calibration.js` 로직 완료
+  - `CoordinateSensor`, `MockSensor`, `PositionFilter`, `WebSocketSensor` ✅
+  - `CoordinateMapper`, `Calibration` 로직 ✅
 
 ---
 
-## 2. 로드맵 (Next Steps)
+## 2. 아키텍처 결정사항 (Opus 검토 확정)
 
-> 명세서 v1.2 기준. Figma 파이프라인(구 §7)은 제거됨.
+| 항목 | 결정 |
+|------|------|
+| HitboxLayer | `hitboxImg` PNG를 `drawImage`로 Canvas 오버레이 (JSON 폴리곤 불필요) |
+| Calibration UX | **Freeze & Click**: [캡처] 버튼으로 visionX/Y 고정 → Canvas 클릭으로 worldX/Y 추출 |
+| regions.json 필드명 | MapManager 별칭처리 `hg.hitboxDataUrl ?? hg.hitboxImg` (원본 JSON 수정 없음) |
 
-### 단계 3 — Renderer + 레이어 전체 + 디자인 토큰
-**파일 변경 목록:**
+---
 
-| 작업 | 파일 | 내용 |
-|------|------|------|
-| [NEW] | `apps/web/src/canvas/layers/MapLayer.js` | 사냥터 배경 이미지 Canvas 렌더링. `map-bg` 토큰으로 로딩 전 배경. `setImage(url)` 비동기 로드 |
-| [NEW] | `apps/web/src/canvas/layers/HitboxLayer.js` | 히트박스 JSON 배열 → Canvas 렌더링. `hitbox-stroke`/`hitbox-fill` 토큰. `setHitboxes(arr)` / `clear()` |
-| [MODIFY] | `apps/web/src/canvas/Renderer.js` | 레이어 순서: `MapLayer → HitboxLayer → PlayerLayer`. `mp1:mapExited` 시 `_resizeObserver.disconnect()` 누수 수정 |
-| [FIX] | `apps/web/src/canvas/layers/PlayerLayer.js` | Trail 버그: `_trail.push()` 를 `render()` 안이 아닌 `onPosition()` 호출 시점에만 수행 |
-| [MODIFY] | `packages/design-tokens/tokens.json` | 상태 dot 색상(`status-connected/reconnecting/disconnected`), 마커 반지름, 트레일 선 굵기 토큰 추가 |
+## 3. 로드맵 (잔여 작업)
 
-커밋 메시지:
+### 단계 3 — Renderer + 레이어 + 디자인 토큰
+
+| 작업 | 파일 |
+|------|------|
+| [NEW] | `apps/web/src/canvas/layers/MapLayer.js` — 배경 PNG `drawImage`, map-bg 토큰으로 로딩 전 배경 |
+| [NEW] | `apps/web/src/canvas/layers/HitboxLayer.js` — `hitboxImg` PNG `drawImage`, 반투명 오버레이 |
+| [MODIFY] | `apps/web/src/canvas/Renderer.js` — 레이어 순서 MapLayer→HitboxLayer→PlayerLayer, ResizeObserver 누수 수정 |
+| [FIX] | `apps/web/src/canvas/layers/PlayerLayer.js` — trail.push()를 render()가 아닌 onPosition()에서 |
+| [MODIFY] | `packages/design-tokens/tokens.json` — status-connected/reconnecting/disconnected, marker-radius, trail-width 추가 |
+
 ```
 feat: [단계3] MapLayer — 배경 이미지 렌더링
-feat: [단계3] HitboxLayer — 히트박스 Canvas 렌더링
+feat: [단계3] HitboxLayer — hitboxImg PNG Canvas 오버레이
 feat: [단계3] Renderer 레이어 스택 완성 + ResizeObserver 누수 수정
 fix:  [단계3] PlayerLayer trail 버그 수정 (60fps → 센서 속도)
 feat: [단계3] tokens.json 확장
@@ -47,14 +52,13 @@ feat: [단계3] tokens.json 확장
 
 ---
 
-### 단계 4 — MapManager 보완 + main.js 연결
+### 단계 4 — MapManager + main.js 연결
 
-| 작업 | 파일 | 내용 |
-|------|------|------|
-| [MODIFY] | `packages/core/src/MapManager.js` | `hitboxImg`→`hitboxDataUrl` 필드 정규화(regions.json 수정 없이). `setRegion()` 히트박스 JSON `fetch()` 비동기 로딩 추가. `regionChanged` 이벤트에 hitboxes 포함 |
-| [MODIFY] | `apps/web/src/main.js` | `WebSocketSensor.onRegionChange` → `mapManager.setRegion()` 연결. `mp1:mapExited` 정리 로직 보완(누수 제거). `huntingGroundChanged` → `renderer.onRegionChange()` 연결 |
+| 작업 | 파일 |
+|------|------|
+| [MODIFY] | `packages/core/src/MapManager.js` — `hg.hitboxDataUrl ?? hg.hitboxImg` 별칭, `setRegion()` hitbox 비동기 로딩 |
+| [MODIFY] | `apps/web/src/main.js` — WS regionChange→mapManager.setRegion() 연결, exit 정리, huntingGroundChanged→renderer.onRegionChange() |
 
-커밋 메시지:
 ```
 feat: [단계4] MapManager 히트박스 비동기 로딩 + 필드명 정규화
 fix:  [단계4] main.js WS regionChange 연결 + 누수 수정
@@ -62,41 +66,40 @@ fix:  [단계4] main.js WS regionChange 연결 + 누수 수정
 
 ---
 
-### 단계 6 — Calibration UI 연결
+### 단계 5 — UI 정리 + Calibration 패널
 
-| 작업 | 파일 | 내용 |
-|------|------|------|
-| [MODIFY] | `apps/web/src/main.js` | 캘리브레이션 모드 버튼 → Canvas 클릭으로 `Calibration.addPoint()` 수집. 2점 완료 시 인디케이터. `WebSocketSensor` 수신 좌표에 `calibration.apply()` 적용 |
+| 작업 | 파일 |
+|------|------|
+| [FIX] | `apps/web/index.html` — 구버전 #sensor-panel 제거 (5515~5524번 줄), 캘리브레이션 버튼 추가 |
+| [NEW] | `#calibration-panel` HTML — Freeze & Click UX (캡처 버튼 × 2, Canvas 클릭 → addPoint) |
+| [MODIFY] | `apps/web/src/main.js` — Calibration UI 로직 연결, WS 좌표에 calibration.apply() 적용 |
 
-커밋 메시지:
+**Freeze & Click 흐름:**
+1. 게임 내 캐릭터를 랜드마크에 세움 → WS가 visionX/Y 수신 중
+2. [1번 캡처] 클릭 → 현재 visionX/Y 메모리 고정
+3. Canvas에서 동일 랜드마크 클릭 → CoordinateMapper.unmap() → worldX/Y → addPoint()
+4. 2번 반복 → [완료] → calibration.apply() 활성화
+
 ```
-feat: [단계6] Calibration UI 연결 (2점 보정 모드)
+fix:  [단계5] index.html 중복 sensor-panel 제거
+feat: [단계5] calibration-panel UI (Freeze & Click)
+feat: [단계5] main.js Calibration 로직 연결
 ```
 
 ---
 
-## 3. 오픈 퀘스천 (구현 전 확인 필요)
-
-> ⚠️ 아래 항목은 확인 전 임의 구현 금지
-
-1. **히트박스 JSON** (`apps/web/src/data/hitboxes/*.json`) — 이미 존재하는 파일이 있나요, 아니면 이번에 새로 만들어야 하나요? (Figma 파이프라인 제거 이후 소스 불명)
-2. **배경 이미지** (`hg.mapImg = ./images/Cernium/Cernium_1.webp` 등) — `apps/web/public/` 하위에 실제로 있나요?
-3. **Calibration UI 위치** — 기존 `sensor-panel` 안에 버튼 추가 vs 별도 패널 분리?
-
----
-
-## 4. 구조 요약 (Repository Structure)
+## 4. 구조 요약
 
 ```
 mp1/
-├── apps/web/          ← 메이플스토리 캔버스 시뮬레이터 (GitHub Pages 자동 배포)
-│   └── src/
-│       ├── main.js
-│       ├── canvas/    ← Renderer + 레이어 (단계3에서 완성 예정)
-│       └── data/      ← regions.json, hitboxes/
+├── apps/web/          ← GitHub Pages 자동 배포 (main 브랜치 push → 빌드)
+│   └── src/canvas/layers/
+│       ├── MapLayer.js       ← [단계3 신규]
+│       ├── HitboxLayer.js    ← [단계3 신규] PNG drawImage 방식
+│       └── PlayerLayer.js    ← [단계3 버그수정]
 ├── packages/
 │   ├── sensors/       ← ✅ 완료
-│   ├── core/          ← 부분 완료 (MapManager 보완 필요)
-│   └── design-tokens/ ← tokens.json (단계3에서 확장 예정)
-└── perplexity-webui-scraper/  ← AI 프록시 (모델 영역, CI/CD 미정)
+│   ├── core/          ← MapManager 보완 필요 [단계4]
+│   └── design-tokens/ ← tokens.json 확장 필요 [단계3]
+└── perplexity-webui-scraper/  ← AI 프록시 (모델 영역, CI/CD 추후 결정)
 ```

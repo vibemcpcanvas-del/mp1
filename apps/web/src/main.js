@@ -11,14 +11,17 @@ import { MockSensor } from '@sensors/MockSensor.js';
 import { WebSocketSensor } from '@sensors/WebSocketSensor.js';
 import { MapManager } from '@core/MapManager.js';
 import { Renderer } from './canvas/Renderer.js';
+import { VisionRenderer } from './canvas/VisionRenderer.js';
 import regionsData from './data/regions.json';
 
 // ─── 상태 ─────────────────────────────────────────────────────
 let renderer = null;
+let visionRenderer = null;
 let mapManager = null;
 let activeSensor = null;
 let sensorRunning = false;
 let sensorMode = 'mock'; // 'mock' | 'ws'
+let currentTool = 'select'; // 'select' | 'pin'
 
 // ─── 초기화 ────────────────────────────────────────────────────
 function init() {
@@ -31,6 +34,8 @@ function init() {
   hookLegacyMapEvents();
   setupSensorPanel();
   setupCalibrationPanel();
+  setupWorkspaceTools();
+  setupScreenShare();
 }
 
 /**
@@ -73,8 +78,14 @@ function hookLegacyMapEvents() {
     if (!renderer) {
       renderer = new Renderer(canvas, mapManager);
     }
+    const visionCanvas = document.getElementById('vision-overlay-canvas');
+    if (visionCanvas && !visionRenderer) {
+      visionRenderer = new VisionRenderer(visionCanvas);
+    }
+    
     renderer.onRegionChange();
     renderer.start();
+    if (visionRenderer) visionRenderer.start();
 
     const panel = document.getElementById('sensor-panel');
     const divider = document.getElementById('mp1-control-divider');
@@ -94,6 +105,10 @@ function hookLegacyMapEvents() {
       if (typeof renderer.destroy === 'function') renderer.destroy();
       else renderer.stop();
       renderer = null;
+    }
+    if (visionRenderer) {
+      visionRenderer.stop();
+      visionRenderer = null;
     }
     if (activeSensor) {
       activeSensor.stop();
@@ -161,6 +176,11 @@ function setupSensorPanel() {
 
     activeSensor.subscribe(pos => {
       window._lastRawVisionPos = { x: pos.x, y: pos.y };
+      
+      if (visionRenderer) {
+        visionRenderer.onPosition(pos);
+      }
+      
       let finalPos = pos;
       if (mapManager && mapManager.calibration) {
         const cal = mapManager.calibration.apply(pos.x, pos.y);
@@ -203,12 +223,62 @@ function setupCalibrationPanel() {
     window._calData.p2 = { vision: null, world: null };
     
     updateCalUI();
+    window._mp1SelectTool('pin'); // 캘리브레이션 진입 시 핀 도구 활성화
 
-    const canvas = document.getElementById('tracker-canvas');
-    if (canvas) {
-      canvas.style.cursor = 'crosshair';
-      canvas.addEventListener('click', onCanvasClickForCalibration);
+    const trackerCanvas = document.getElementById('tracker-canvas');
+    const visionCanvas = document.getElementById('vision-overlay-canvas');
+    if (trackerCanvas) {
+      trackerCanvas.style.cursor = 'crosshair';
+      trackerCanvas.addEventListener('click', onTrackerCanvasClick);
     }
+    if (visionCanvas) {
+      visionCanvas.style.cursor = 'crosshair';
+      visionCanvas.addEventListener('click', onVisionCanvasClick);
+    }
+  };
+
+  const onVisionCanvasClick = (e) => {
+    if (!window._isCalibrationMode || currentTool !== 'pin') return;
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    
+    // 비전 캔버스는 가상 해상도 (e.g. 1366x768)로 매핑
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const vx = (e.clientX - rect.left) * scaleX;
+    const vy = (e.clientY - rect.top) * scaleY;
+    
+    if (!window._calData.p1.vision) {
+      window._calData.p1.vision = { x: vx, y: vy };
+    } else if (!window._calData.p2.vision) {
+      window._calData.p2.vision = { x: vx, y: vy };
+    } else {
+      window._calData.p2.vision = { x: vx, y: vy };
+    }
+    updateCalUI();
+  };
+
+  const onTrackerCanvasClick = (e) => {
+    if (!window._isCalibrationMode || currentTool !== 'pin' || !renderer || !mapManager) return;
+    
+    const canvas = e.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+
+    const mapper = mapManager.mapper;
+    if (!mapper) return;
+    const worldPos = mapper.unmap(px, py);
+
+    if (!window._calData.p1.world) {
+      window._calData.p1.world = worldPos;
+    } else if (!window._calData.p2.world) {
+      window._calData.p2.world = worldPos;
+    } else {
+      window._calData.p2.world = worldPos;
+    }
+    updateCalUI();
   };
 
   window._mp1CalibrationCapture = (step) => {
@@ -225,32 +295,9 @@ function setupCalibrationPanel() {
     updateCalUI();
   };
 
-  const onCanvasClickForCalibration = (e) => {
-    if (!window._isCalibrationMode || !renderer || !mapManager) return;
-    
-    const canvas = e.currentTarget;
-    const rect = canvas.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const py = e.clientY - rect.top;
-
-    const mapper = mapManager.mapper;
-    if (!mapper) return;
-    const worldPos = mapper.unmap(px, py);
-
-    // 아직 world가 빈 곳에 채우기
-    if (!window._calData.p1.world) {
-      window._calData.p1.world = worldPos;
-    } else if (!window._calData.p2.world) {
-      window._calData.p2.world = worldPos;
-    } else {
-      // 둘 다 차있으면 p2를 갱신
-      window._calData.p2.world = worldPos;
-    }
-    updateCalUI();
-  };
-
   window._mp1CalibrationCancel = () => {
     closeCalibrationPanel();
+    window._mp1SelectTool('select');
   };
 
   window._mp1CalibrationDone = () => {
@@ -264,6 +311,7 @@ function setupCalibrationPanel() {
       }
     }
     closeCalibrationPanel();
+    window._mp1SelectTool('select');
   };
 
   function closeCalibrationPanel() {
@@ -273,10 +321,15 @@ function setupCalibrationPanel() {
     if (sp) sp.style.display = 'flex';
     if (cp) cp.style.display = 'none';
 
-    const canvas = document.getElementById('tracker-canvas');
-    if (canvas) {
-      canvas.style.cursor = 'default';
-      canvas.removeEventListener('click', onCanvasClickForCalibration);
+    const trackerCanvas = document.getElementById('tracker-canvas');
+    const visionCanvas = document.getElementById('vision-overlay-canvas');
+    if (trackerCanvas) {
+      trackerCanvas.style.cursor = 'default';
+      trackerCanvas.removeEventListener('click', onTrackerCanvasClick);
+    }
+    if (visionCanvas) {
+      visionCanvas.style.cursor = 'default';
+      visionCanvas.removeEventListener('click', onVisionCanvasClick);
     }
   }
 
@@ -302,6 +355,57 @@ function setupCalibrationPanel() {
       doneBtn.style.color = ready ? '#fff' : '#9ca3af';
     }
   }
+}
+
+// ─── 유틸리티 ──────────────────────────────────────────────────────
+function setupWorkspaceTools() {
+  window._mp1SelectTool = (toolName) => {
+    currentTool = toolName;
+    const selectBtn = document.getElementById('tool-select-btn');
+    const pinBtn = document.getElementById('tool-pin-btn');
+    const statusText = document.getElementById('tool-status-text');
+    
+    if (toolName === 'select') {
+      if (selectBtn) { selectBtn.style.background = '#3182f6'; selectBtn.style.color = '#fff'; }
+      if (pinBtn) { pinBtn.style.background = 'transparent'; pinBtn.style.color = '#b0b8c1'; }
+      if (statusText) statusText.textContent = '마우스로 드래그하여 맵을 이동할 수 있습니다.';
+      
+      const vContainer = document.getElementById('map-viewport');
+      if (vContainer) vContainer.style.cursor = 'grab';
+    } else if (toolName === 'pin') {
+      if (selectBtn) { selectBtn.style.background = 'transparent'; selectBtn.style.color = '#b0b8c1'; }
+      if (pinBtn) { pinBtn.style.background = '#f59e0b'; pinBtn.style.color = '#1a1a2e'; }
+      if (statusText) statusText.textContent = '클릭하여 기준점을 매핑하세요 (캘리브레이션 전용).';
+      
+      const vContainer = document.getElementById('map-viewport');
+      if (vContainer) vContainer.style.cursor = 'crosshair';
+    }
+  };
+}
+
+function setupScreenShare() {
+  window._mp1StartScreenShare = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: false });
+      const video = document.getElementById('game-screen-video');
+      const standby = document.getElementById('vision-standby');
+      if (video && standby) {
+        video.srcObject = stream;
+        video.style.display = 'block';
+        standby.style.display = 'none';
+
+        stream.getVideoTracks()[0].onended = () => {
+          video.srcObject = null;
+          video.style.display = 'none';
+          standby.style.display = 'flex';
+          window._mp1ScreenStream = null;
+        };
+        window._mp1ScreenStream = stream;
+      }
+    } catch (err) {
+      console.warn('Screen share cancelled or failed', err);
+    }
+  };
 }
 
 function updateSensorUI(status, btnText) {

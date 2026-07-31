@@ -10,7 +10,6 @@
  * @module main
  */
 import { VisionSensor } from '@sensors/VisionSensor.js';
-import { WebSocketSensor } from '@sensors/WebSocketSensor.js';
 import { PositionFilter } from '@sensors/PositionFilter.js';
 import { MapManager } from '@core/MapManager.js';
 import { RouteManager } from '@core/RouteManager.js';

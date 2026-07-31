@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
+    "test": "npx vitest run",
     "extract-data": "node tools/extract-data.mjs"
   }
 }

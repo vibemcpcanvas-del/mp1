@@ -11,6 +11,7 @@ export class VisionRenderer {
     this._latestPos = null;
     this._rafId = null;
     this._video = document.getElementById('game-screen-video');
+    this.isFrozen = false;
   }
 
   start() {
@@ -44,23 +45,32 @@ export class VisionRenderer {
       vh = this._video.videoHeight;
     }
     
-    if (this.canvas.width !== vw || this.canvas.height !== vh) {
-      this.canvas.width = vw;
-      this.canvas.height = vh;
+    const dpr = window.devicePixelRatio || 1;
+    const targetW = Math.floor(vw * dpr);
+    const targetH = Math.floor(vh * dpr);
+    
+    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
+      this.canvas.width = targetW;
+      this.canvas.height = targetH;
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.clearRect(0, 0, vw, vh);
 
     // Draw trail
     this.trail.forEach((p) => {
-      p.alpha -= 0.02;
+      if (!this.isFrozen) {
+        p.alpha -= 0.02;
+      }
       if (p.alpha <= 0) return;
       this.ctx.beginPath();
       this.ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
       this.ctx.fillStyle = `rgba(49, 130, 246, ${p.alpha * 0.5})`;
       this.ctx.fill();
     });
-    this.trail = this.trail.filter(p => p.alpha > 0);
+    if (!this.isFrozen) {
+      this.trail = this.trail.filter(p => p.alpha > 0);
+    }
 
     // Draw current pos
     if (this._latestPos) {

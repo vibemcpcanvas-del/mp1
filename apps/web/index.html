@@ -52,7 +52,7 @@
         }
 
         #main-page { flex: 1; padding: 50px 20px; text-align: center; }
-        #simulator-page { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 0; width: 100%; box-sizing: border-box; }
+        #simulator-page { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 0; width: 100%; box-sizing: border-box; position: relative; }
         #simulator-main { min-height: 700px; }
 
         /* =========================================
@@ -1204,10 +1204,10 @@
         <!-- ╔═══════════════════════════════════════════════════╗
              ║  MP1 탭 바 — MAP 설정 / LIVE 모니터               ║
              ╚═══════════════════════════════════════════════════╝ -->
-        <div id="mp1-tab-bar" style="display:flex; align-items:center; gap:8px; padding:8px 20px; background:#1a1f2e; border-bottom:1px solid rgba(255,255,255,0.06); position:sticky; top:70px; z-index:150; flex-shrink:0; width:100%; box-sizing:border-box;">
+        <div id="mp1-tab-bar" style="display:flex; align-items:center; gap:8px; padding:6px 12px; background:rgba(15,23,42,0.85); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1); border-radius:12px; position:absolute; top:70px; left:50%; transform:translateX(-50%); z-index:200; box-shadow:0 8px 32px rgba(0,0,0,0.4);">
             <button id="tab-btn-map" class="tab-btn tab-btn--active" style="padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:700; background:rgba(0,243,255,0.15); color:#00f3ff; transition:0.2s;">🗺️ MAP 설정</button>
             <button id="tab-btn-live" class="tab-btn" style="padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:700; background:transparent; color:#94a3b8; transition:0.2s;">📺 LIVE 모니터</button>
-            <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+            <div style="margin-left:4px; display:flex; gap:8px; align-items:center;">
                 <button id="route-edit-toggle-btn" onclick="window._mp1ToggleRouteEdit?.()" style="padding:7px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); cursor:pointer; font-size:12px; font-weight:700; background:transparent; color:#94a3b8; transition:0.2s;">✏️ 경로 편집</button>
                 <button onclick="window._mp1DeployBot?.()" style="padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:700; background:#3182f6; color:#fff; box-shadow:0 4px 12px rgba(49,130,246,0.35); transition:0.2s;">▶ 배치 완료</button>
             </div>
@@ -1215,12 +1215,6 @@
 
         <!-- 캡챠 경고 배너 -->
         <div id="captcha-alert-banner" style="display:none; position:fixed; top:70px; left:0; right:0; z-index:9999; background:rgba(245,158,11,0.95); color:#000; padding:12px 20px; text-align:center; font-weight:700; font-size:14px; align-items:center; justify-content:center; gap:8px;">⚠️ 봇 감지 의심! 화면을 확인하세요.</div>
-
-        <!-- ─── MAP 설정 탭 콘텐츠 (기존 simulator-page 내부 DOM 전체 포함) ─── -->
-        <div id="tab-map-content">
-
-        <!-- ─── LIVE 모니터 탭 콘텐츠 ─── -->
-        </div><!-- /#tab-map-content -->
 
         <div id="tab-live-content" hidden style="position:relative; width:100%; height:calc(100vh - 110px); background:#0f172a; overflow:hidden; flex-shrink:0;">
             <!-- 화면 공유 비디오 + YOLO 오버레이 캔버스 -->
@@ -1253,6 +1247,7 @@
             </div>
         </div><!-- /#tab-live-content -->
 
+        <div id="tab-map-content">
         <div id="worldmap-ui" style="display: none; position: relative; width: min(1280px, calc(100vw - 40px)); margin: -30px auto 0 auto; flex-direction: row; justify-content: center; align-items: stretch; gap: 20px; padding-top: 100px;">
             <div class="worldmap-guide-text" style="position: absolute; top: 0; left: 0; width: 100%; text-align: center; pointer-events: none;">
                 <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #f9fafb; letter-spacing: -0.5px; word-break: keep-all;">월드맵에서 <span style="color: #ff4d4d;">붉은색</span> 박스를 눌러 해당 지역으로 이동하세요</h2>
@@ -1511,9 +1506,9 @@
                 </div>
             </div> <!-- /hud-overlay-container -->
         </div> <!-- /simulator-main --> 
+        </div><!-- /#tab-map-content -->
 
-
-
+    </div><!-- /#simulator-page -->
 
     <script>
     /* ---------------------------------------------------

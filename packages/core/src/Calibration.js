@@ -12,7 +12,11 @@ export class Calibration {
    * @param {string} regionName - 지역명 (localStorage 키로 사용)
    */
   constructor(regionName) {
-    this.regionName = regionName;
+    if (typeof regionName === 'object' && regionName !== null) {
+      this.regionName = regionName.regionName || regionName.name || 'default';
+    } else {
+      this.regionName = regionName || 'default';
+    }
     /** @type {{ visionX: number, visionY: number, worldX: number, worldY: number }[]} */
     this._points = [];
     /** @type {{ scaleX: number, scaleY: number, offsetX: number, offsetY: number } | null} */
@@ -31,6 +35,7 @@ export class Calibration {
   addPoint(visionX, visionY, worldX, worldY) {
     if (this._points.length >= 2) {
       this._points = []; // 초기화 후 첫 번째 점 재설정
+      this._transform = null; // 새로운 점 세트 시작 시 이전 변환 초기화
     }
     this._points.push({ visionX, visionY, worldX, worldY });
 
@@ -75,6 +80,30 @@ export class Calibration {
     }
   }
 
+  /**
+   * 다른 지역의 보정값을 런타임에 로드 (인스턴스 재사용 시 사용)
+   * regionId 가 다르면 this.regionName 도 업데이트함
+   * @param {string} regionId - 불러올 지역 ID / 이름
+   * @returns {boolean} 복원 성공 여부
+   */
+  load(regionId) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_PREFIX + regionId);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== 'object') return false;
+
+      this.regionName = regionId;
+      this._points = data.points || [];
+      this._transform = data.transform || null;
+      console.debug(`[Calibration] load() — "${regionId}" 보정값 복원됨`);
+      return true;
+    } catch (e) {
+      console.warn('[Calibration] load() localStorage 접근 실패:', e);
+      return false;
+    }
+  }
+
   // ─── 내부 ──────────────────────────────────────────────────
 
   _calculate() {
@@ -108,6 +137,7 @@ export class Calibration {
       const raw = localStorage.getItem(STORAGE_KEY_PREFIX + this.regionName);
       if (!raw) return;
       const data = JSON.parse(raw);
+      if (!data || typeof data !== 'object') return;
       this._points = data.points || [];
       this._transform = data.transform || null;
       console.debug(`[Calibration] "${this.regionName}" 보정값 복원됨`);

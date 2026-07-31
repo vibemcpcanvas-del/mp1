@@ -4,3 +4,30 @@ apps/web/index.legacy.html
 *.log
 .DS_Store
 Thumbs.db
+
+# Python 가상환경
+.venv/
+__pycache__/
+*.pyc
+
+# 임시/스크래치 파일
+perplexity-webui-scraper/
+ai-proxy/
+.agents/
+*.patch
+*.diff
+old_index*.html
+old_index*.diff
+rebuild_index.py
+restore.py
+revert.diff
+check_keys.py
+scratch_test.js
+layout_debug.txt
+final_diff.patch
+
+# 테스트 아티팩트 (선택적 추적)
+# apps/web/src/canvas/*.test.js
+# test/
+# vitest.config.js
+# test.setup.js

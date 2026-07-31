@@ -118,12 +118,464 @@
         .sub-button:hover img { transform: scale(1.1); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
 
         /* =========================================
-           4. 시뮬레이터 & 월드맵 메인 영역
+           4. 시뮬레이터 & 월드맵 메인 영역 (Hoyoverse Glass HUD)
         ========================================= */
         .simulator-main { 
-            display: flex; gap: 25px; justify-content: center; align-items: stretch; 
-            width: 95%; max-width: 2000px; height: 85vh; min-height: 800px;
-            margin: -60px auto 0 auto; padding: 0; box-sizing: border-box;
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+            background-color: #0f172a !important;
+            overflow: hidden !important;
+            z-index: 100 !important;
+        }
+
+        #map-viewport-wrapper {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+            background: #0f172a !important;
+            z-index: 1 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        #map-viewport {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            background-color: #0f172a !important;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Outer HUD Overlay Container: Pass-through clicks to Canvas */
+        #hud-overlay-container, .glass-hud-wrapper {
+            position: absolute;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none !important;
+            z-index: 10;
+            padding: 16px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Re-enable interactive clicks on all floating HUD cards/panels */
+        .hud-glass-card,
+        .hud-panel,
+        .hud-modal {
+            pointer-events: auto !important;
+        }
+
+        /* Hoyoverse Acrylic Glass Base */
+        .hud-glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .hud-glass-card:hover {
+            border-color: rgba(0, 243, 255, 0.4);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6), 0 0 16px 0 rgba(0, 243, 255, 0.2);
+        }
+
+        /* Vision PIP Overlay */
+        .hud-vision-pip {
+            width: 320px;
+            height: 200px;
+            border-left: 3px solid #00f3ff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+        }
+
+        .hud-vision-pip:hover {
+            transform: translateY(-2px) scale(1.02);
+            border-color: rgba(0, 243, 255, 0.6);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6), 0 0 20px 0 rgba(0, 243, 255, 0.3);
+        }
+
+        .vision-pip-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 32px;
+            padding: 0 12px;
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .vision-pip-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #00f3ff;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .vision-pip-status-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .vision-pip-body {
+            position: relative;
+            width: 100%;
+            height: calc(100% - 32px);
+            background: #050b14;
+        }
+
+        .vision-standby {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 12px;
+            gap: 8px;
+        }
+
+        .vision-video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+
+        .vision-overlay-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .vision-overlay-canvas.calibration-active {
+            pointer-events: auto !important;
+            cursor: crosshair;
+        }
+
+        .vision-share-btn {
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffffff;
+            background: linear-gradient(135deg, #00f3ff, #0066ff);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 243, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .vision-share-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 243, 255, 0.5);
+        }
+
+        /* Sensor Controls Panel */
+        .hud-sensor-controls {
+            width: 320px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 20;
+        }
+
+        .sensor-status-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sensor-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6b7280;
+            box-shadow: 0 0 8px currentColor;
+            transition: background 0.3s ease;
+        }
+
+        .sensor-status-dot.connected { background: #22c55e; color: #22c55e; }
+        .sensor-status-dot.connecting { background: #eab308; color: #eab308; }
+        .sensor-status-dot.disconnected { background: #6b7280; color: #6b7280; }
+
+        /* MP1 탭 바 버튼 스타일 */
+        .tab-btn { transition: background 0.2s, color 0.2s; }
+        .tab-btn--active { background: rgba(0,243,255,0.15) !important; color: #00f3ff !important; }
+        #route-edit-toggle-btn.active { background: rgba(245,158,11,0.2) !important; color: #f59e0b !important; border-color: rgba(245,158,11,0.4) !important; }
+
+        .sensor-status-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .sensor-mode-group {
+            display: flex;
+            background: rgba(30, 41, 59, 0.6);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .sensor-mode-btn {
+            flex: 1;
+            padding: 6px 0;
+            font-size: 12px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sensor-mode-btn.active {
+            background: #00f3ff;
+            color: #0f172a;
+            font-weight: 700;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+        }
+
+        .sensor-toggle-btn {
+            width: 100%;
+            padding: 10px 0;
+            font-size: 13px;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #00f3ff, #0066ff);
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 243, 255, 0.3);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sensor-toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 243, 255, 0.5);
+        }
+
+        .sensor-trail-btn {
+            width: 100%;
+            padding: 8px 0;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.5);
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sensor-trail-btn:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        /* Calibration Modal Overlay */
+        .hud-calibration-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 440px;
+            background: rgba(15, 23, 42, 0.85);
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 0, 127, 0.4);
+            border-top: 3px solid #ff007f;
+            border-radius: 20px;
+            box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.7), 0 0 24px 0 rgba(255, 0, 127, 0.25);
+            padding: 24px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            pointer-events: auto;
+        }
+
+        .cal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 10px;
+        }
+
+        .cal-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ff007f;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cal-matrix-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .cal-point-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cal-point-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .cal-coord-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .cal-coord-val {
+            font-family: monospace;
+            font-size: 11px;
+            color: #00f3ff;
+            background: rgba(0, 243, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .cal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .cal-btn-cancel {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #94a3b8;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cal-btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+        }
+
+        .cal-btn-done {
+            padding: 8px 20px;
+            font-size: 12px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff007f, #7928ca);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(255, 0, 127, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .cal-btn-done:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Skill Toolbar Panel */
+        .hud-skill-toolbar {
+            width: 320px;
+            max-height: calc(100vh - 120px);
+            background: rgba(15, 23, 42, 0.75);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            overflow-y: auto;
+            z-index: 20;
+        }
+
+        .hud-skill-toolbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .hud-skill-toolbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        /* Light Mode Support */
+        body.light-mode #simulator-main,
+        body.light-mode #map-viewport-wrapper {
+            background-color: #f8fafc !important;
+        }
+
+        body.light-mode .hud-glass-card {
+            background: rgba(255, 255, 255, 0.85) !important;
+            border-color: rgba(0, 0, 0, 0.10) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08) !important;
+        }
+
+        body.light-mode .hud-calibration-panel {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border-color: rgba(255, 0, 127, 0.4) !important;
+            box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.12), 0 0 24px 0 rgba(255, 0, 127, 0.15) !important;
+        }
+
+        body.light-mode .sensor-status-text,
+        body.light-mode .cal-point-label,
+        body.light-mode .vision-pip-title {
+            color: #0f172a !important;
         }
 
         .left-section { 
@@ -748,7 +1200,59 @@
     </div>
 
     <div id="simulator-page" style="display: none;">
-        
+
+        <!-- ╔═══════════════════════════════════════════════════╗
+             ║  MP1 탭 바 — MAP 설정 / LIVE 모니터               ║
+             ╚═══════════════════════════════════════════════════╝ -->
+        <div id="mp1-tab-bar" style="display:flex; align-items:center; gap:8px; padding:8px 20px; background:#1a1f2e; border-bottom:1px solid rgba(255,255,255,0.06); position:sticky; top:70px; z-index:150; flex-shrink:0; width:100%; box-sizing:border-box;">
+            <button id="tab-btn-map" class="tab-btn tab-btn--active" style="padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:700; background:rgba(0,243,255,0.15); color:#00f3ff; transition:0.2s;">🗺️ MAP 설정</button>
+            <button id="tab-btn-live" class="tab-btn" style="padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:700; background:transparent; color:#94a3b8; transition:0.2s;">📺 LIVE 모니터</button>
+            <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                <button id="route-edit-toggle-btn" onclick="window._mp1ToggleRouteEdit?.()" style="padding:7px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); cursor:pointer; font-size:12px; font-weight:700; background:transparent; color:#94a3b8; transition:0.2s;">✏️ 경로 편집</button>
+                <button onclick="window._mp1DeployBot?.()" style="padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:700; background:#3182f6; color:#fff; box-shadow:0 4px 12px rgba(49,130,246,0.35); transition:0.2s;">▶ 배치 완료</button>
+            </div>
+        </div>
+
+        <!-- 캡챠 경고 배너 -->
+        <div id="captcha-alert-banner" style="display:none; position:fixed; top:70px; left:0; right:0; z-index:9999; background:rgba(245,158,11,0.95); color:#000; padding:12px 20px; text-align:center; font-weight:700; font-size:14px; align-items:center; justify-content:center; gap:8px;">⚠️ 봇 감지 의심! 화면을 확인하세요.</div>
+
+        <!-- ─── MAP 설정 탭 콘텐츠 (기존 simulator-page 내부 DOM 전체 포함) ─── -->
+        <div id="tab-map-content">
+
+        <!-- ─── LIVE 모니터 탭 콘텐츠 ─── -->
+        </div><!-- /#tab-map-content -->
+
+        <div id="tab-live-content" hidden style="position:relative; width:100%; height:calc(100vh - 110px); background:#0f172a; overflow:hidden; flex-shrink:0;">
+            <!-- 화면 공유 비디오 + YOLO 오버레이 캔버스 -->
+            <video id="live-game-video" style="width:100%; height:100%; object-fit:contain; display:none;"></video>
+            <canvas id="live-vision-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></canvas>
+            <div id="live-vision-standby" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#888; gap:12px;">
+                <div style="font-size:14px; font-weight:900; letter-spacing:2px; color:#00f3ff;">NO SIGNAL</div>
+                <div style="font-size:12px;">화면 공유를 시작하면 LIVE 모드가 활성화됩니다</div>
+            </div>
+
+            <!-- 우상단 미니맵 오버레이 -->
+            <div id="live-minimap" style="position:absolute; top:16px; right:16px; width:200px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border-radius:12px; padding:12px; font-size:12px; color:#fff; border:1px solid rgba(255,255,255,0.1);">
+                <div style="font-size:11px; font-weight:700; color:#00f3ff; margin-bottom:6px; letter-spacing:1px;">MINIMAP</div>
+                <canvas id="minimap-canvas" width="176" height="100" style="width:100%; border-radius:6px; background:#1a1f2e;"></canvas>
+                <div id="live-status-text" style="margin-top:8px; color:#94a3b8; font-size:11px;">대기 중</div>
+            </div>
+
+            <!-- RouteEditor 패널 (좌상단) -->
+            <div id="route-editor-panel" style="position:absolute; top:16px; left:16px; width:200px; background:rgba(15,23,42,0.85); backdrop-filter:blur(12px); border-radius:12px; padding:14px; border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:13px;">
+                <div style="font-weight:700; margin-bottom:8px; color:#00f3ff;">🗺️ 경로 설정</div>
+                <ul id="route-list" style="list-style:none; padding:0; margin:0 0 8px 0; max-height:200px; overflow-y:auto;"></ul>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button id="route-add-btn" style="flex:1; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); background:transparent; color:#94a3b8; cursor:pointer; font-size:12px;">+ 추가</button>
+                    <select id="route-mode-select" style="flex:1; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); background:#1a1f2e; color:#94a3b8; font-size:12px; cursor:pointer;">
+                        <option value="loop">순환</option>
+                        <option value="pingpong">왕복</option>
+                    </select>
+                </div>
+                <button id="route-save-btn" style="width:100%; margin-top:8px; padding:7px; border-radius:6px; border:none; background:#3182f6; color:#fff; font-size:12px; font-weight:700; cursor:pointer;">💾 저장</button>
+            </div>
+        </div><!-- /#tab-live-content -->
+
         <div id="worldmap-ui" style="display: none; position: relative; width: min(1280px, calc(100vw - 40px)); margin: -30px auto 0 auto; flex-direction: row; justify-content: center; align-items: stretch; gap: 20px; padding-top: 100px;">
             <div class="worldmap-guide-text" style="position: absolute; top: 0; left: 0; width: 100%; text-align: center; pointer-events: none;">
                 <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #f9fafb; letter-spacing: -0.5px; word-break: keep-all;">월드맵에서 <span style="color: #ff4d4d;">붉은색</span> 박스를 눌러 해당 지역으로 이동하세요</h2>
@@ -795,241 +1299,218 @@
         </div>
 
         <div id="simulator-main" class="simulator-main" style="display: none;">
-            <div class="left-section">
-                <div class="map-wrapper-box">
-
-<div class="map-header" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 50px; flex-shrink: 0; padding: 0; margin-bottom: 0; box-sizing: border-box;">
-    
-    <div style="flex: 1; display: flex; justify-content: flex-start;">
-        <button class="back-btn" onclick="goBack()">뒤로가기</button>
-    </div>
-    
-    <div style="display: flex; justify-content: center;">
-        <h2 id="region-title" style="margin: 0; color: #d4ff00; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-size: 22px; font-weight: 900; white-space: nowrap;">지역 이름</h2>
-    </div>
-    
-    <div style="flex: 1; display: flex; justify-content: flex-end;">
-        <button id="reset-btn-header" class="reset-btn" onclick="resetPlacement()" style="display: none; background: #f04452; color: #ffffff; border: none; padding: 10px 18px; font-size: 14px; font-weight: 600; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(240, 68, 82, 0.3);">배치 초기화</button>
-    </div>
-</div> <!-- /map-header -->
-
-    <div id="gl-container" style="flex: 1; min-height: 0; width: 100%; height: 100%;"></div>
-
-    <!-- 숨겨진 원본 DOM 요소들 -->
-    <div id="gl-source-elements" style="display: none;">
-
-        <!-- Top: Vision Monitor -->
-        <div id="vision-viewport" data-display="flex" style="width: 100%; height: 100%; overflow: hidden; position: relative; background-color: #0d1015; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div id="vision-standby" style="position: absolute; display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.4);">
-                <div style="font-size: 20px; font-weight: 900; letter-spacing: 2px;">NO SIGNAL</div>
-                <div style="font-size: 11px; margin-top: 6px;">실시간 게임 화면을 연결하세요.</div>
-                <button onclick="window._mp1StartScreenShare && window._mp1StartScreenShare()" style="margin-top: 12px; padding: 6px 14px; border-radius: 6px; background: #3182f6; color: #fff; border: none; cursor: pointer; font-weight: 700; font-size: 12px; transition: 0.2s;">화면공유 켜기</button>
+            <!-- Base Layer: Full-bleed Canvas Viewport (100vw x 100vh) -->
+            <div id="map-viewport-wrapper" style="position: absolute; inset: 0; width: 100vw; height: 100vh; overflow: hidden; background: #0f172a; z-index: 1;">
+                <div id="map-viewport" style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; cursor: grab; display: flex; justify-content: center; align-items: center;">
+                    <div id="simulator-spinner" class="map-loading-spinner"></div>
+                    <div class="map-container" id="map-container" style="position: relative; max-width: 100%; max-height: 100%; transform-origin: center center; cursor: crosshair; display: inline-block;">
+                        <img src="" id="map-background" draggable="false" style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; user-select: none; object-fit: contain;">
+                        <!-- Canvas 오버레이 -->
+                        <canvas id="tracker-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></canvas>
+                    </div>
+                </div>
             </div>
-            <video id="game-screen-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: contain; display: none;"></video>
-            <canvas id="vision-overlay-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></canvas>
-        </div>
 
-        <div id="map-viewport-wrapper" data-display="flex" style="width: 100%; height: 100%; display: flex; flex-direction: column; background: #1a1e24;">
-        <!-- Toolbar -->
-        <div id="workspace-toolbar" style="display: flex; gap: 8px; align-items: center; justify-content: center; background: #202632; padding: 6px; border-radius: 8px; flex-shrink: 0; margin: 8px 15px;">
-            <button id="tool-select-btn" onclick="window._mp1SelectTool('select')" class="tool-btn active" style="padding: 6px 14px; border-radius: 6px; background: #3182f6; color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 700; transition: 0.2s;">기본 (이동)</button>
-            <button id="tool-pin-btn" onclick="window._mp1SelectTool('pin')" class="tool-btn" style="padding: 6px 14px; border-radius: 6px; background: transparent; color: #b0b8c1; border: none; cursor: pointer; font-size: 13px; font-weight: 700; transition: 0.2s;">📍 핀 (기준점 맵핑)</button>
-            <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 4px;"></div>
-            <span id="tool-status-text" style="font-size: 12px; color: #9ca3af; font-weight: 600;">마우스로 드래그하여 맵을 이동할 수 있습니다.</span>
-        </div>
-
-        <!-- Bottom: Map Viewport (기존) -->
-        <div id="map-viewport" style="flex: 1; min-height: 0; overflow: hidden; position: relative; border-radius: 4px; cursor: grab; background-color: #000; display: flex; justify-content: center; align-items: center; margin: 0 15px;">
-            <div id="simulator-spinner" class="map-loading-spinner"></div>
-            
-            <div class="map-container" id="map-container" style="position: relative; max-width: 100%; max-height: 100%; transform-origin: center center; cursor: crosshair; display: inline-block;">
-                <img src="" id="map-background" draggable="false" style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; user-select: none; object-fit: contain;">
-                <!-- Canvas 오버레이 -->
-                <canvas id="tracker-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;"></canvas>
-            </div>
-        </div>
+            <!-- Overlay Layer: Floating Hoyoverse Glassmorphism HUD (pointer-events: none) -->
+            <div id="hud-overlay-container" class="glass-hud-wrapper" style="position: absolute; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+                <!-- Top Bar: Header & Toolbar -->
+                <div class="hud-top-bar" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 16px; pointer-events: auto; z-index: 20;">
+                    <div class="map-header hud-glass-card" style="display: flex; align-items: center; justify-content: space-between; flex: 1; height: 50px; padding: 0 16px; box-sizing: border-box;">
+                        <div style="flex: 1; display: flex; justify-content: flex-start;">
+                            <button class="back-btn" onclick="goBack()">뒤로가기</button>
+                        </div>
+                        <div style="display: flex; justify-content: center;">
+                            <h2 id="region-title" style="margin: 0; color: #d4ff00; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); font-size: 20px; font-weight: 900; white-space: nowrap;">지역 이름</h2>
+                        </div>
+                        <div style="flex: 1; display: flex; justify-content: flex-end; gap: 8px;">
+                            <button id="hitbox-btn" class="back-btn" onclick="toggleHitbox()">몹 히트박스 표시</button>
+                            <button id="reset-btn-header" class="reset-btn" onclick="resetPlacement()" style="display: none; background: #f04452; color: #ffffff; border: none; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(240, 68, 82, 0.3);">배치 초기화</button>
+                            <button id="save-build-btn" class="save-btn" onclick="saveBuildAsImage()" style="display: none;">빌드 저장하기</button>
+                        </div>
+                    </div>
                     
-<div class="guide-bar" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 50px; flex-shrink: 0; padding: 0; margin-top: 0; box-sizing: border-box;">
-    
-    <div style="flex: 1; display: flex; justify-content: flex-start;">
-        <button id="hitbox-btn" class="back-btn" onclick="toggleHitbox()">몹 히트박스 표시</button>
-    </div>
-    
-    <div style="display: flex; justify-content: center;">
-
-    </div>
-
-    <div style="flex: 1; display: flex; justify-content: flex-end;">
-        <button id="save-build-btn" class="save-btn" onclick="saveBuildAsImage()" style="display: none;">빌드 저장하기</button>
-    </div>
-    
-    <p id="guide-text" style="display: none;"></p>
-    
-</div>
-            </div> </div>
-        </div> <!-- /map-viewport-wrapper -->
-
-        <!-- MP1 Controls Wrapper -->
-        <div id="mp1-controls-wrapper" data-display="flex" style="width: 100%; height: 100%; display: flex; flex-direction: column; background: #1a1e24; overflow-y: auto;">
-            <!-- Sensor Panel -->
-            <div id="sensor-panel" style="
-                display: flex;
-                background: #202632;
-                border: 1px solid rgba(255,255,255,0.08);
-                border-radius: 12px;
-                padding: 14px 16px;
-                gap: 10px;
-                flex-direction: column;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
-                margin: 10px;
-            ">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span id="sensor-status-dot" style="width:10px; height:10px; border-radius:50%; background:#6b7280; flex-shrink:0;"></span>
-                    <span id="sensor-status-text" style="font-size:13px; color:#b0b8c1; font-weight:600;">센서 대기 중</span>
-                </div>
-                <div style="display:flex; gap:6px;">
-                    <button id="sensor-mock-btn"
-                        onclick="window._mp1SetSensorMode('mock')"
-                        class="active"
-                        style="flex:1; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
-                    >Mock</button>
-                    <button id="sensor-ws-btn"
-                        onclick="window._mp1SetSensorMode('ws')"
-                        style="flex:1; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
-                    >WS</button>
-                </div>
-                <button id="sensor-toggle-btn"
-                    onclick="window._mp1SensorToggle()"
-                    style="width:100%; padding:8px 0; font-size:13px; font-weight:700; border:none; border-radius:10px; cursor:pointer; background:#3182f6; color:#fff; transition:0.2s;"
-                >Mock 센서 켜기</button>
-                <button id="trail-toggle-btn"
-                    onclick="window._mp1TrailToggle()"
-                    style="width:100%; padding:6px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#2b323e; color:#b0b8c1; transition:0.2s;"
-                >궤적 숨기기</button>
-                <div style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; margin-top: 4px; margin-bottom: 4px;"></div>
-                <button id="calibration-btn"
-                    onclick="window._mp1CalibrationStart && window._mp1CalibrationStart()"
-                    style="width:100%; padding:8px 0; font-size:13px; font-weight:700; border:none; border-radius:10px; cursor:pointer; background:#f59e0b; color:#1a1a2e; transition:0.2s;"
-                >🎯 캘리브레이션</button>
-            </div>
-
-            <!-- Calibration Panel -->
-            <div id="calibration-panel" style="
-                display: none;
-                background: #202632;
-                border: 1px solid rgba(255,255,255,0.08);
-                border-radius: 12px;
-                padding: 16px;
-                flex-direction: column;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                font-family: 'Pretendard Variable', 'Pretendard', sans-serif;
-                margin: 10px;
-            ">
-                <div style="font-size:14px; color:#fff; font-weight:700; margin-bottom:8px;">🎯 캘리브레이션 모드</div>
-                <div style="font-size:12px; color:#9ca3af; line-height:1.4; margin-bottom:12px;">
-                    상단 비디오에서 캐릭터 위치 클릭 후,<br>
-                    하단 맵에서 동일 위치를 클릭하세요.
-                </div>
-
-                <!-- Point 1 -->
-                <div style="background:#2b323e; border-radius:10px; padding:10px; margin-bottom:8px;">
-                    <div style="font-size:12px; font-weight:600; color:#b0b8c1; margin-bottom:6px;">1번 기준점</div>
-                    <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:4px;">
-                        <span>Vision:</span><span id="cal-p1-vision">(미캡처)</span>
-                    </div>
-                    <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <span>World:</span><span id="cal-p1-world">(미클릭)</span>
+                    <div id="workspace-toolbar" class="hud-glass-card" style="display: flex; gap: 8px; align-items: center; padding: 8px 16px; flex-shrink: 0;">
+                        <button id="tool-select-btn" onclick="window._mp1SelectTool('select')" class="tool-btn active" style="padding: 6px 14px; border-radius: 8px; background: #00f3ff; color: #0f172a; border: none; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s;">기본 (이동)</button>
+                        <button id="tool-pin-btn" onclick="window._mp1SelectTool('pin')" class="tool-btn" style="padding: 6px 14px; border-radius: 8px; background: transparent; color: #94a3b8; border: none; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s;">📍 핀 (기준점 맵핑)</button>
+                        <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.1); margin: 0 4px;"></div>
+                        <span id="tool-status-text" style="font-size: 12px; color: #94a3b8; font-weight: 600;">마우스로 드래그하여 맵을 이동할 수 있습니다.</span>
                     </div>
                 </div>
 
-                <!-- Point 2 -->
-                <div style="background:#2b323e; border-radius:10px; padding:10px; margin-bottom:12px;">
-                    <div style="font-size:12px; font-weight:600; color:#b0b8c1; margin-bottom:6px;">2번 기준점</div>
-                    <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:4px;">
-                        <span>Vision:</span><span id="cal-p2-vision">(미캡처)</span>
+                <!-- Left Group: Vision PIP & Sensor Controls -->
+                <div class="hud-left-group" style="position: absolute; top: 80px; left: 20px; display: flex; flex-direction: column; gap: 14px; pointer-events: none; z-index: 20;">
+                    <!-- Sub-panel 1: Vision PIP -->
+                    <div id="vision-viewport" class="hud-glass-card hud-vision-pip" style="pointer-events: auto;">
+                        <div class="vision-pip-header">
+                            <span class="vision-pip-title">LIVE VISION FEED</span>
+                            <span class="vision-pip-status-badge">CAMERA / SCREEN</span>
+                        </div>
+                        <div class="vision-pip-body">
+                            <div id="vision-standby" class="vision-standby">
+                                <div style="font-size: 14px; font-weight: 900; letter-spacing: 2px; color: #00f3ff;">NO SIGNAL</div>
+                                <div style="font-size: 11px;">실시간 게임 화면을 연결하세요.</div>
+                                <button class="vision-share-btn" onclick="window._mp1StartScreenShare && window._mp1StartScreenShare()">화면공유 켜기</button>
+                            </div>
+                            <video id="game-screen-video" class="vision-video-feed" autoplay playsinline muted></video>
+                            <canvas id="vision-overlay-canvas" class="vision-overlay-canvas"></canvas>
+                        </div>
                     </div>
-                    <div style="font-size:11px; color:#9ca3af; display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <span>World:</span><span id="cal-p2-world">(미클릭)</span>
+
+                    <!-- Sub-panel 2: Sensor Controls -->
+                    <div id="mp1-controls-wrapper" style="pointer-events: auto;">
+                        <div id="sensor-panel" class="hud-glass-card hud-sensor-controls">
+                            <div class="sensor-status-header">
+                                <span id="sensor-status-dot" class="sensor-status-dot disconnected"></span>
+                                <span id="sensor-status-text" class="sensor-status-text">센서 대기 중</span>
+                            </div>
+                            <div class="sensor-mode-group">
+                                <!-- sensor-mock-btn: deprecated — VisionSensor로 대체됨 -->
+                                <button id="sensor-mock-btn" style="display:none;" class="sensor-mode-btn">Mock</button>
+                                <button id="sensor-ws-btn" onclick="window._mp1SetSensorMode('ws')" class="sensor-mode-btn active">WS (dumb_keymasher)</button>
+                            </div>
+                            <button id="sensor-toggle-btn" onclick="window._mp1SensorToggle()" class="sensor-toggle-btn">WS 연결</button>
+                            <button id="trail-toggle-btn" onclick="window._mp1TrailToggle()" class="sensor-trail-btn">궤적 숨기기</button>
+                            
+                            <!-- PositionFilter controls -->
+                            <div style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; margin: 4px 0; padding-top: 4px; display: flex; flex-direction: column; gap: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8;">
+                                    <span>노이즈 필터 (EMA)</span>
+                                    <input type="checkbox" id="filter-enable-chk" checked onchange="window._mp1TogglePositionFilter && window._mp1TogglePositionFilter(this.checked)" style="cursor: pointer;">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8;">
+                                    <span>평활화 (α):</span>
+                                    <input type="range" id="filter-alpha-range" min="0.05" max="0.95" step="0.05" value="0.3" oninput="window._mp1SetFilterAlpha && window._mp1SetFilterAlpha(parseFloat(this.value))" style="flex: 1; cursor: pointer;">
+                                    <span id="filter-alpha-val" style="width: 24px; text-align: right; color: #00f3ff;">0.30</span>
+                                </div>
+                            </div>
+
+                            <!-- Hitbox Layer controls -->
+                            <div style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; margin: 4px 0; padding-top: 4px; display: flex; flex-direction: column; gap: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8;">
+                                    <span>히트박스 오버레이</span>
+                                    <input type="checkbox" id="hitbox-enable-chk" checked onchange="window._mp1SetHitboxVisibility && window._mp1SetHitboxVisibility(this.checked); const b = document.getElementById('hitbox-btn'); if(b) b.classList.toggle('checked-active', this.checked);" style="cursor: pointer;">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8;">
+                                    <span>투명도:</span>
+                                    <input type="range" id="hitbox-opacity-range" min="0.0" max="1.0" step="0.05" value="0.6" oninput="window._mp1SetHitboxOpacity && window._mp1SetHitboxOpacity(parseFloat(this.value)); const v = document.getElementById('hitbox-opacity-val'); if(v) v.textContent = parseFloat(this.value).toFixed(2);" style="flex: 1; cursor: pointer;">
+                                    <span id="hitbox-opacity-val" style="width: 24px; text-align: right; color: #00f3ff;">0.60</span>
+                                </div>
+                            </div>
+
+                            <div style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; margin: 2px 0;"></div>
+                            <button id="calibration-btn" onclick="window._mp1CalibrationStart && window._mp1CalibrationStart()" style="width: 100%; padding: 8px 0; font-size: 12px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, #ff007f, #7928ca); color: #fff; box-shadow: 0 4px 12px rgba(255, 0, 127, 0.3); transition: 0.2s;">🎯 캘리브레이션</button>
+                        </div>
                     </div>
                 </div>
 
-                <div style="display:flex; gap:8px;">
-                    <button id="cal-done-btn" disabled onclick="window._mp1CalibrationDone()" style="flex:2; padding:8px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:not-allowed; background:#1e40af; color:#9ca3af;">완료</button>
-                    <button id="cal-cancel-btn" onclick="window._mp1CalibrationCancel()" style="flex:1; padding:8px 0; font-size:12px; font-weight:600; border:none; border-radius:8px; cursor:pointer; background:#ef4444; color:#fff;">취소</button>
+                <!-- Right Group: Skill Toolbar -->
+                <div class="hud-right-group" style="position: absolute; top: 80px; right: 20px; pointer-events: none; z-index: 20;">
+                    <div id="skill-sidebar-content" class="hud-glass-card hud-skill-toolbar" style="pointer-events: auto;">
+                        <div id="skill-sidebar" class="skill-sidebar" style="display: block; width: 100%; height: 100%; box-sizing: border-box; background: transparent; border: none;">
+                            <div style="margin-bottom: 12px;"><h4 style="margin:0; font-size: 14px; color: #00f3ff;">공용 스킬</h4></div>
+                            <div class="skill-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                                <div class="skill-card" onclick="selectSkill('fountain', this)" style="margin: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 12px; gap: 10px; height: auto;">
+                                    <img src="./Skillicon/fountain.webp" alt="에르다 파운틴" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;">
+                                    <span style="flex: 1; text-align: left; margin: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">에르다 파운틴</span>
+                                </div>
+                                <div class="skill-card" onclick="selectSkill('s_common_janusDusk', this)" style="margin: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 12px; gap: 8px; height: auto;">
+                                    <img src="./Skillicon/janusDusk.webp" alt="솔 야누스 : 황혼" onerror="this.src='./icon/Authentic Force.webp'" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;">
+                                    <span style="flex: 1; text-align: left; margin: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">솔 야누스 : 황혼</span>
+                                </div>
+                                <div class="skill-card" onclick="selectSkill('janus', this)" style="margin: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 12px; gap: 8px; height: auto;">
+                                    <img src="./Skillicon/janus.webp" alt="솔 야누스" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;">
+                                    <span style="flex: 1; text-align: left; margin: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">솔 야누스 : 새벽</span>
+                                    <div class="janus-options" style="margin: 0; padding: 0; border: none; width: auto; flex-shrink: 0; display: flex; gap: 4px;">
+                                        <button class="lvl-btn active" style="flex: none; padding: 5px 8px; font-size: 11px;" onclick="setJanusLevel(1, this, event)">1~9</button>
+                                        <button class="lvl-btn" style="flex: none; padding: 5px 8px; font-size: 11px;" onclick="setJanusLevel(2, this, event)">10~19</button>
+                                        <button class="lvl-btn" style="flex: none; padding: 5px 8px; font-size: 11px;" onclick="setJanusLevel(3, this, event)">20~30</button>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px; width: 100%;">
+                                    <div class="skill-card" onclick="selectSkill('s_common_spiderInMirror', this)" style="margin: 0; flex: 1; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 10px; gap: 8px; min-width: 0; height: auto;">
+                                        <img src="./Skillicon/Mirror.webp" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;" onerror="this.src='./icon/Authentic Force.webp'">
+                                        <span style="flex: 1; text-align: left; margin: 0; font-size: 10.0px !important; white-space: normal; line-height: 1.2; word-break: keep-all; min-width: 0;">스파이더 인 미러</span>
+                                    </div>
+                                    <div class="skill-card" onclick="selectSkill('s_common_crestOfTheSolar', this)" style="margin: 0; flex: 1; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 10px; gap: 8px; min-width: 0; height: auto;">
+                                        <img src="./Skillicon/crestOfTheSolar.webp" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;" onerror="this.src='./icon/Authentic Force.webp'">
+                                        <span style="flex: 1; text-align: left; margin: 0; font-size: 10.0px !important; white-space: normal; line-height: 1.2; word-break: keep-all; min-width: 0;">크레스트 오브 더 솔라</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="sidebar-divider">
+                                <h4 style="margin:0; font-size: 14px; color: #00f3ff;">직업 스킬</h4>
+                            </div>
+                            <div style="margin-bottom: 15px; position: relative;" id="custom-dropdown-wrapper">
+                                <div id="dropdown-selected" onclick="toggleJobDropdown(event)" style="width: 100%; padding: 10px; background: #222428; color: #ccc; border: 1px solid #4a4d55; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);">
+                                    <div id="selected-job-content" style="display: flex; align-items: center; gap: 8px;">
+                                        <span>== 직업을 선택해주세요 ==</span>
+                                    </div>
+                                    <span style="font-size: 10px; color: #888;">▼</span>
+                                </div>
+                                <div id="dropdown-list" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 280px; overflow-y: auto; background: #2b2d32; border: 1px solid #4a4d55; border-radius: 6px; margin-top: 4px; z-index: 200; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                                </div>
+                            </div>
+                            <div id="job-skill-container" class="skill-list" style="margin-bottom: 25px; min-height: 75px; align-items: center; justify-content: center;">
+                                <div style="color: #666; font-size: 12px; text-align: center; width: 100%;">
+                                    위에서 직업을 선택하면<br>스킬 목록이 나타납니다.
+                                </div>
+                            </div>
+
+                            <div class="sidebar-divider">
+                                <h4 style="margin:0; font-size: 14px; color: #00f3ff;">이벤트 스킬</h4>
+                            </div>
+                            <div class="skill-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 0; min-height: 52px;">
+                                <!-- 이벤트 스킬 비움 -->
+                            </div>
+                        </div> <!-- /skill-sidebar -->
+                    </div> <!-- /skill-sidebar-content -->
                 </div>
-            </div>
-        </div> <!-- /mp1-controls-wrapper -->
 
-        <!-- Skills Sidebar Wrapper -->
-        <div id="skill-sidebar-content" data-display="block" style="width: 100%; height: 100%; background: #1a1e24; overflow-y: auto;">
-            <div class="skill-sidebar" style="display: block; width: 100%; height: 100%; box-sizing: border-box; background: transparent; border: none;">
-    <div style="margin-bottom: 15px;"><h4 style="margin:0; font-size: 16px;">공용 스킬</h4></div>
-    
-<div class="skill-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px;">
-        <div class="skill-card" onclick="selectSkill('fountain', this)" style="margin: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 12px; gap: 10px; height: auto;">
-            <img src="./Skillicon/fountain.webp" alt="에르다 파운틴" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;">
-            <span style="flex: 1; text-align: left; margin: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">에르다 파운틴</span>
-        </div>
-        
-        <div class="skill-card" onclick="selectSkill('s_common_janusDusk', this)" style="margin: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 12px; gap: 8px; height: auto;">
-            <img src="./Skillicon/janusDusk.webp" alt="솔 야누스 : 황혼" onerror="this.src='./icon/Authentic Force.webp'" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;">
-            <span style="flex: 1; text-align: left; margin: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">솔 야누스 : 황혼</span>
-        </div>
-
-        <div class="skill-card" onclick="selectSkill('janus', this)" style="margin: 0; width: 100%; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 12px; gap: 8px; height: auto;">
-            <img src="./Skillicon/janus.webp" alt="솔 야누스" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;">
-            <span style="flex: 1; text-align: left; margin: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">솔 야누스 : 새벽</span>
-            <div class="janus-options" style="margin: 0; padding: 0; border: none; width: auto; flex-shrink: 0; display: flex; gap: 4px;">
-                <button class="lvl-btn active" style="flex: none; padding: 5px 8px; font-size: 11px;" onclick="setJanusLevel(1, this, event)">1~9</button>
-                <button class="lvl-btn" style="flex: none; padding: 5px 8px; font-size: 11px;" onclick="setJanusLevel(2, this, event)">10~19</button>
-                <button class="lvl-btn" style="flex: none; padding: 5px 8px; font-size: 11px;" onclick="setJanusLevel(3, this, event)">20~30</button>
-            </div>
-        </div>
-        
-<div style="display: flex; gap: 8px; width: 100%;">
-        <div class="skill-card" onclick="selectSkill('s_common_spiderInMirror', this)" style="margin: 0; flex: 1; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 10px; gap: 8px; min-width: 0; height: auto;">
-            <img src="./Skillicon/Mirror.webp" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;" onerror="this.src='./icon/Authentic Force.webp'">
-            <span style="flex: 1; text-align: left; margin: 0; font-size: 10.0px !important; white-space: normal; line-height: 1.2; word-break: keep-all; min-width: 0;">스파이더 인 미러</span>
-        </div>
-        <div class="skill-card" onclick="selectSkill('s_common_crestOfTheSolar', this)" style="margin: 0; flex: 1; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 10px 10px; gap: 8px; min-width: 0; height: auto;">
-            <img src="./Skillicon/crestOfTheSolar.webp" style="width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; margin: 0;" onerror="this.src='./icon/Authentic Force.webp'">
-            <span style="flex: 1; text-align: left; margin: 0; font-size: 10.0px !important; white-space: normal; line-height: 1.2; word-break: keep-all; min-width: 0;">크레스트 오브 더 솔라</span>
-        </div>
-    </div> <div class="sidebar-divider">
-        <h4 style="margin:0; font-size: 16px;">직업 스킬</h4>
-    </div>
-
-    <div style="margin-bottom: 15px; position: relative;" id="custom-dropdown-wrapper">
-        <div id="dropdown-selected" onclick="toggleJobDropdown(event)" style="width: 100%; padding: 10px; background: #222428; color: #ccc; border: 1px solid #4a4d55; border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.3);">
-            <div id="selected-job-content" style="display: flex; align-items: center; gap: 8px;">
-                <span>== 직업을 선택해주세요 ==</span>
-            </div>
-            <span style="font-size: 10px; color: #888;">▼</span>
-        </div>
-        <div id="dropdown-list" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 280px; overflow-y: auto; background: #2b2d32; border: 1px solid #4a4d55; border-radius: 6px; margin-top: 4px; z-index: 200; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-        </div>
-    </div>
-
-    <div id="job-skill-container" class="skill-list" style="margin-bottom: 25px; min-height: 75px; align-items: center; justify-content: center;">
-        <div style="color: #666; font-size: 12px; text-align: center; width: 100%;">
-            위에서 직업을 선택하면<br>스킬 목록이 나타납니다.
-        </div>
-    </div>
-            
-    <div class="sidebar-divider">
-        <h4 style="margin:0; font-size: 16px;">이벤트 스킬</h4>
-    </div>
-
-    <div class="skill-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 0; min-height: 52px;">
-        <!-- 이벤트 스킬 비움 (빈 공간) -->
-    </div>
-            </div> <!-- /skill-sidebar -->
-        </div> <!-- /skill-sidebar-content -->
-    
-    </div> <!-- /gl-source-elements -->
-<!-- ⬆️ 여기까지 덮어쓰기 ⬆️ -->
-</div> </div> </div> 
+                <!-- Sub-panel 3: Calibration Panel / Modal -->
+                <div id="calibration-panel" class="hud-calibration-panel" style="display: none;">
+                    <div class="cal-header">
+                        <div class="cal-title">🎯 캘리브레이션 모드</div>
+                        <button id="cal-freeze-btn" onclick="window._mp1ToggleFreezeFrame && window._mp1ToggleFreezeFrame()" style="font-size: 11px; padding: 4px 8px; background: rgba(0,243,255,0.15); color: #00f3ff; border: 1px solid rgba(0,243,255,0.4); border-radius: 6px; cursor: pointer; font-weight: 600;">Freeze Frame</button>
+                    </div>
+                    <div style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
+                        상단 비디오에서 캐릭터 위치 클릭 후,<br>
+                        하단 맵에서 동일 위치를 클릭하세요.
+                    </div>
+                    <div class="cal-matrix-grid">
+                        <div class="cal-point-card">
+                            <div class="cal-point-label" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>1번 기준점</span>
+                                <button onclick="window._mp1CalibrationCapture(1)" style="font-size: 10px; padding: 2px 6px; background: rgba(0,243,255,0.2); color: #00f3ff; border: 1px solid rgba(0,243,255,0.4); border-radius: 4px; cursor: pointer;">Set Point 1</button>
+                            </div>
+                            <div class="cal-coord-row">
+                                <span>Vision:</span><span id="cal-p1-vision" class="cal-coord-val">(미캡처)</span>
+                            </div>
+                            <div class="cal-coord-row">
+                                <span>World:</span><span id="cal-p1-world" class="cal-coord-val">(미클릭)</span>
+                            </div>
+                        </div>
+                        <div class="cal-point-card">
+                            <div class="cal-point-label" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>2번 기준점</span>
+                                <button onclick="window._mp1CalibrationCapture(2)" style="font-size: 10px; padding: 2px 6px; background: rgba(0,243,255,0.2); color: #00f3ff; border: 1px solid rgba(0,243,255,0.4); border-radius: 4px; cursor: pointer;">Set Point 2</button>
+                            </div>
+                            <div class="cal-coord-row">
+                                <span>Vision:</span><span id="cal-p2-vision" class="cal-coord-val">(미캡처)</span>
+                            </div>
+                            <div class="cal-coord-row">
+                                <span>World:</span><span id="cal-p2-world" class="cal-coord-val">(미클릭)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cal-actions">
+                        <button id="cal-clear-btn" onclick="window._mp1ClearCalibration && window._mp1ClearCalibration()" class="cal-btn-cancel" style="background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.4);">Clear Calibration</button>
+                        <button id="cal-cancel-btn" onclick="window._mp1CalibrationCancel()" class="cal-btn-cancel">취소</button>
+                        <button id="cal-done-btn" disabled onclick="window._mp1CalibrationDone()" class="cal-btn-done">Save Calibration</button>
+                    </div>
+                </div>
+            </div> <!-- /hud-overlay-container -->
+        </div> <!-- /simulator-main --> 
 
 
 
@@ -3259,32 +3740,19 @@ function toggleHitbox() {
 
     isHitboxOn = !isHitboxOn;
     const btn = document.getElementById('hitbox-btn');
-    const mapImg = document.getElementById('map-background');
 
     if (isHitboxOn) {
-        // 활성화 시 클래스만 추가 (체크박스 애니메이션은 CSS가 처리)
-        btn.classList.add('checked-active');
-        
-        const hitboxImgPath = activeMapData.mapImg.replace('/images/', '/Hitbox/');
-        
-        mapImg.onerror = function() {
-            alert("해당 지역의 히트박스 지도는 아직 준비 중입니다!");
-            
-            // 에러 시 원상복구
-            isHitboxOn = false;
-            btn.classList.remove('checked-active');
-            mapImg.src = activeMapData.mapImg;
-            mapImg.onerror = null; 
-        };
-        
-        mapImg.src = hitboxImgPath;
-        
+        if (btn) btn.classList.add('checked-active');
     } else {
-        // 비활성화 시 클래스 제거
-        btn.classList.remove('checked-active');
-        
-        mapImg.onerror = null;
-        mapImg.src = activeMapData.mapImg;
+        if (btn) btn.classList.remove('checked-active');
+    }
+
+    if (typeof window._mp1SetHitboxVisibility === 'function') {
+        window._mp1SetHitboxVisibility(isHitboxOn);
+    }
+    const hitboxChk = document.getElementById('hitbox-enable-chk');
+    if (hitboxChk) {
+        hitboxChk.checked = isHitboxOn;
     }
 }
 // 🎵 1. BGM 재생 통합 함수 (볼륨바 연동)

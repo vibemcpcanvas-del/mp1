@@ -1,15 +1,13 @@
 /**
  * Renderer.js
  * rAF 기반 60fps 렌더 루프 + Canvas 오버레이 관리
- * 
- * 역할: DOM 맵 위에 position:absolute Canvas를 겹쳐서
- *       PlayerLayer만 렌더링한다 (HitboxLayer/MapLayer는 DOM이 담당).
- * 
  * @module canvas/Renderer
  */
 import { PlayerLayer } from './layers/PlayerLayer.js';
 import { MapLayer } from './layers/MapLayer.js';
 import { HitboxLayer } from './layers/HitboxLayer.js';
+import { RouteLayer } from './layers/RouteLayer.js';
+import { SkillLayer } from './layers/SkillLayer.js';
 
 export class Renderer {
   /**
@@ -18,11 +16,11 @@ export class Renderer {
    */
   constructor(canvas, mapManager) {
     this._canvas = canvas;
-    this._ctx = canvas.getContext('2d');
+    this._ctx = canvas ? canvas.getContext('2d') : null;
     this._mapManager = mapManager;
 
-    /** @type {Array<{ render: Function }>} 레이어 배열 (확장 가능 구조) */
-    this._layers = [new MapLayer(), new HitboxLayer(), new PlayerLayer()];
+    /** @type {Array<import('./layers/BaseLayer').BaseLayer>} 레이어 배열 */
+    this._layers = [new MapLayer(), new HitboxLayer(), new RouteLayer(), new SkillLayer(), new PlayerLayer()];
 
     /** 최신 수신 위치 (월드좌표) */
     this._latestPos = null;
@@ -35,8 +33,10 @@ export class Renderer {
     this._running = false;
 
     // 리사이즈 옵저버
-    this._resizeObserver = new ResizeObserver(() => this._onResize());
-    this._resizeObserver.observe(canvas.parentElement || canvas);
+    if (typeof ResizeObserver !== 'undefined' && canvas) {
+      this._resizeObserver = new ResizeObserver(() => this._onResize());
+      this._resizeObserver.observe(canvas.parentElement || canvas);
+    }
     this._onResize();
   }
 
@@ -48,9 +48,93 @@ export class Renderer {
     }
   }
 
-  get mapLayer() { return this._layers[0]; }
-  get hitboxLayer() { return this._layers[1]; }
-  get playerLayer() { return this._layers[2]; }
+  get layers() { return [...this._layers]; }
+  get mapLayer() { return this.getLayer('map') || this._layers[0]; }
+  get hitboxLayer() { return this.getLayer('hitbox') || this._layers[1]; }
+  get playerLayer() { return this.getLayer('player') || this._layers[4]; }
+  get routeLayer() { return this.getLayer('route'); }
+  get skillLayer() { return this.getLayer('skill'); }
+
+  setLayers(layersArray) {
+    if (!Array.isArray(layersArray)) {
+      throw new TypeError('setLayers expects an Array of Layer instances');
+    }
+    this._layers = layersArray;
+  }
+
+  /**
+   * 레이어 식별자 또는 이름으로 검색
+   * @param {string} layerName
+   * @returns {import('./layers/BaseLayer').BaseLayer|null}
+   */
+  getLayer(layerName) {
+    if (!layerName) return null;
+    const name = String(layerName).toLowerCase();
+    return this._layers.find(l => {
+      if (!l) return false;
+      const layerId = l.id ? String(l.id).toLowerCase() : '';
+      if (layerId === name) return true;
+      const className = l.constructor ? String(l.constructor.name).toLowerCase() : '';
+      if (className === name || className === `${name}layer`) return true;
+      return false;
+    }) || null;
+  }
+
+  /**
+   * 레이어 가시성 설정
+   * @param {string} layerName - 'map' | 'hitbox' | 'player'
+   * @param {boolean} visible
+   */
+  setLayerVisibility(layerName, visible) {
+    const layer = this.getLayer(layerName);
+    if (layer) {
+      layer.visible = Boolean(visible);
+    }
+  }
+
+  /**
+   * 레이어 투명도 설정 (0.0 ~ 1.0)
+   * @param {string} layerName - 'map' | 'hitbox' | 'player'
+   * @param {number} opacity
+   */
+  setLayerOpacity(layerName, opacity) {
+    const layer = this.getLayer(layerName);
+    if (layer && typeof opacity === 'number' && !Number.isNaN(opacity)) {
+      layer.opacity = Math.max(0, Math.min(1, opacity));
+    }
+  }
+
+  /**
+   * 명시적 캔버스 크기 조정
+   * @param {number} width
+   * @param {number} height
+   * @param {number} [dpr]
+   */
+  resize(width, height, dpr = (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1)) {
+    if (!this._canvas) return;
+
+    this._canvas.width = Math.floor(width * dpr);
+    this._canvas.height = Math.floor(height * dpr);
+    if (this._canvas.style) {
+      this._canvas.style.width = `${width}px`;
+      this._canvas.style.height = `${height}px`;
+    }
+
+    if (this._ctx && typeof this._ctx.setTransform === 'function') {
+      this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    if (this._mapManager) {
+      this._mapManager.updateScreenSize(width, height);
+    }
+
+    this._currentScreen = null;
+    for (const layer of this._layers) {
+      if (layer && typeof layer.onResize === 'function') {
+        layer.onResize(width, height, dpr);
+      }
+    }
+  }
 
   /**
    * 센서에서 새 좌표 수신 (렌더 루프와 분리)
@@ -58,10 +142,12 @@ export class Renderer {
    */
   onPosition(pos) {
     this._latestPos = pos;
-    const mapper = this._mapManager.mapper;
+    const mapper = this._mapManager ? this._mapManager.mapper : null;
     if (mapper && pos) {
       const target = mapper.map(pos.x, pos.y);
-      this.playerLayer.onPosition(target.px, target.py);
+      if (this.playerLayer && typeof this.playerLayer.onPosition === 'function') {
+        this.playerLayer.onPosition(target.px, target.py);
+      }
     }
   }
 
@@ -69,13 +155,13 @@ export class Renderer {
   start() {
     if (this._running) return;
     this._running = true;
-    this._loop(performance.now());
+    this._loop(typeof performance !== 'undefined' ? performance.now() : Date.now());
   }
 
   /** 렌더 루프 정지 */
   stop() {
     this._running = false;
-    if (this._rafId) {
+    if (this._rafId && typeof cancelAnimationFrame !== 'undefined') {
       cancelAnimationFrame(this._rafId);
       this._rafId = null;
     }
@@ -84,21 +170,23 @@ export class Renderer {
   // ─── 내부 ──────────────────────────────────────────────────
 
   _loop(now) {
-    if (!this._running) return;
-
-    const dt = this._lastRenderTime ? (now - this._lastRenderTime) / 1000 : 0;
+    const dt = this._lastRenderTime ? Math.min(0.1, (now - this._lastRenderTime) / 1000) : 0;
     this._lastRenderTime = now;
 
-    this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const w = this._canvas ? this._canvas.width / dpr : 800;
+    const h = this._canvas ? this._canvas.height / dpr : 600;
+    if (this._ctx && typeof this._ctx.clearRect === 'function') {
+      this._ctx.clearRect(0, 0, w, h);
+    }
 
-    const mapper = this._mapManager.mapper;
+    const mapper = this._mapManager ? this._mapManager.mapper : null;
 
+    let screenPos = null;
     if (mapper && this._latestPos) {
-      // 화면 좌표 계산
       const target = mapper.map(this._latestPos.x, this._latestPos.y);
 
-      // 선형 보간 (lerp): 센서 업데이트 주기와 렌더 주기 분리
-      const lerpSpeed = 8; // 초당 목표 지점으로 이동 속도 (값이 클수록 빠름)
+      const lerpSpeed = 8;
       if (this._currentScreen === null) {
         this._currentScreen = { ...target };
       } else {
@@ -107,46 +195,52 @@ export class Renderer {
         this._currentScreen.py += (target.py - this._currentScreen.py) * alpha;
       }
 
-      // 각 레이어 렌더
-      const screenPos = {
+      screenPos = {
         px: this._currentScreen.px,
         py: this._currentScreen.py,
         confidence: this._latestPos.confidence ?? 1.0,
       };
-      this._layers.forEach(layer => layer.render(this._ctx, screenPos, this._mapManager));
     }
 
-    this._rafId = requestAnimationFrame(t => this._loop(t));
+    for (const layer of this._layers) {
+      if (layer && layer.visible !== false) {
+        if (this._ctx && typeof this._ctx.save === 'function') this._ctx.save();
+        layer.render(this._ctx, screenPos, this._mapManager, now);
+        if (this._ctx && typeof this._ctx.restore === 'function') this._ctx.restore();
+      }
+    }
+
+    if (this._running && typeof requestAnimationFrame !== 'undefined') {
+      this._rafId = requestAnimationFrame(t => this._loop(t));
+    }
   }
 
   _onResize() {
-    const parent = this._canvas.parentElement;
+    const parent = this._canvas ? this._canvas.parentElement : null;
     if (!parent) return;
 
-    const w = parent.clientWidth;
-    const h = parent.clientHeight;
-
-    // Canvas 해상도를 부모 크기에 맞춤
-    this._canvas.width = w;
-    this._canvas.height = h;
-
-    // MapManager에 화면 크기 갱신
-    this._mapManager.updateScreenSize(w, h);
-
-    // 보간 좌표 초기화 (리사이즈 시 좌표 점프 방지)
-    this._currentScreen = null;
+    const w = parent.clientWidth || 800;
+    const h = parent.clientHeight || 600;
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    this.resize(w, h, dpr);
   }
 
-  /** 지역 전환 시 호출 — 궤적 초기화 */
+  /** 지역 전환 시 호출 — 궤적 및 위치 초기화 */
   onRegionChange() {
-    this.playerLayer.clearTrail();
+    if (this.playerLayer && typeof this.playerLayer.clearTrail === 'function') {
+      this.playerLayer.clearTrail();
+    }
     this._currentScreen = null;
     this._latestPos = null;
     
-    const hg = this._mapManager.currentHG;
+    const hg = this._mapManager ? this._mapManager.currentHuntingGround : null;
     if (hg) {
-      this.mapLayer.setImage(hg.backgroundImageUrl || hg.mapImg);
-      this.hitboxLayer.setImage(hg.hitboxDataUrl || hg.hitboxImg);
+      if (this.mapLayer) {
+        this.mapLayer.setImage(hg.backgroundImageUrl || hg.mapImg);
+      }
+      if (this.hitboxLayer) {
+        this.hitboxLayer.setImage(hg.hitboxDataUrl || hg.hitboxImg);
+      }
     }
   }
 }

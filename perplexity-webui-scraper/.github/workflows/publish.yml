@@ -1,0 +1,336 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact semantic version to validate or publish (MAJOR.MINOR.PATCH)"
+        required: true
+        type: string
+      mode:
+        description: "Validate only by default; choose publish only after reviewing the candidate."
+        required: true
+        default: validate
+        type: choice
+        options:
+          - validate
+          - publish
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Release Candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      package_name: ${{ steps.version.outputs.package_name }}
+      publish: ${{ steps.version.outputs.publish }}
+      tag_exists: ${{ steps.version.outputs.tag_exists }}
+
+    steps:
+      - name: Checkout Production Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate Immutable Release Inputs
+        id: version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          RELEASE_MODE: ${{ inputs.mode }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/prod" ]; then
+            echo "::error::Publish Release must be dispatched from the prod branch."
+            exit 1
+          fi
+
+          if ! [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must use MAJOR.MINOR.PATCH format."
+            exit 1
+          fi
+
+          PROJECT_VERSION=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          LOCK_VERSION=$(awk '/name = "perplexity-webui-scraper"/{found=1; next} found && /^version = /{gsub(/[" ]/, "", $3); print $3; exit}' uv.lock)
+          CHANGELOG_HEADING=$(grep -F "## [$REQUESTED_VERSION] - " CHANGELOG.md | head -n 1)
+
+          if [ "$REQUESTED_VERSION" != "$PROJECT_VERSION" ] || [ "$PROJECT_VERSION" != "$LOCK_VERSION" ]; then
+            echo "::error::Requested version, pyproject.toml, and uv.lock must match."
+            exit 1
+          fi
+
+          if [ -z "$CHANGELOG_HEADING" ] || [[ "$CHANGELOG_HEADING" = *"Unreleased" ]]; then
+            echo "::error::CHANGELOG.md must contain a dated section for $REQUESTED_VERSION before publication."
+            exit 1
+          fi
+
+          TAG="v$REQUESTED_VERSION"
+          TAG_EXISTS=false
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            if [ "$(git rev-list -n 1 "$TAG")" != "$GITHUB_SHA" ]; then
+              echo "::error::$TAG exists but does not point to the selected prod commit."
+              exit 1
+            fi
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "::error::Release $TAG already exists; releases are immutable."
+              exit 1
+            fi
+            TAG_EXISTS=true
+            echo "Resuming the interrupted release for $TAG."
+          fi
+
+          PACKAGE_NAME=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["name"])')
+          echo "version=$PROJECT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$PROJECT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "publish=$([ "$RELEASE_MODE" = "publish" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "tag_exists=$TAG_EXISTS" >> "$GITHUB_OUTPUT"
+
+      - name: Explain Validation Mode
+        if: inputs.mode == 'validate'
+        run: echo "Validation succeeded. Re-run this workflow with mode=publish to create public artifacts."
+
+  build_package:
+    name: Build Python Package
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Production Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Build and Validate Package
+        run: |
+          uv build
+          uvx twine check dist/*
+          sha256sum dist/* > dist/SHA256SUMS
+
+      - name: Upload Package Artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: python-dist
+          path: dist/*
+          if-no-files-found: error
+
+  publish_pypi:
+    name: Publish PyPI
+    needs:
+      - validate
+      - build_package
+    if: needs.validate.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+
+    environment: release
+
+    steps:
+      - name: Set up uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "latest"
+
+      - name: Download Package Artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: python-dist
+          path: dist
+
+      - name: Publish Idempotently to PyPI
+        env:
+          PACKAGE_NAME: ${{ needs.validate.outputs.package_name }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if curl --fail --silent --show-error "https://pypi.org/pypi/$PACKAGE_NAME/$VERSION/json" >/dev/null; then
+            echo "PyPI already contains $PACKAGE_NAME $VERSION; continuing a previously interrupted release."
+            exit 0
+          fi
+          uv publish dist/*.whl dist/*.tar.gz
+
+  publish_container:
+    name: Publish Container Images
+    needs:
+      - validate
+      - publish_pypi
+    if: needs.validate.outputs.publish == 'true' && needs.publish_pypi.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+
+    environment: release
+
+    steps:
+      - name: Checkout Production Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Normalize Image Repository
+        id: repository
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "image=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and Push API Image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.repository.outputs.image }}:${{ needs.validate.outputs.version }}
+            ${{ steps.repository.outputs.image }}:v${{ needs.validate.outputs.version }}
+            ${{ steps.repository.outputs.image }}:latest
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build and Push MCP Image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: Containerfile.mcp
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.repository.outputs.image }}:${{ needs.validate.outputs.version }}-mcp
+            ${{ steps.repository.outputs.image }}:v${{ needs.validate.outputs.version }}-mcp
+            ${{ steps.repository.outputs.image }}:mcp
+          cache-from: type=gha,scope=mcp
+          cache-to: type=gha,mode=max,scope=mcp
+
+  deploy_documentation:
+    name: Deploy Documentation
+    needs:
+      - validate
+      - publish_pypi
+      - publish_container
+    if: needs.validate.outputs.publish == 'true' && needs.publish_pypi.result == 'success' && needs.publish_container.result == 'success'
+    uses: ./.github/workflows/docs.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+  create_github_release:
+    name: Create GitHub Release
+    needs:
+      - validate
+      - build_package
+      - publish_pypi
+      - publish_container
+      - deploy_documentation
+    if: >-
+      needs.validate.outputs.publish == 'true' &&
+      needs.publish_pypi.result == 'success' &&
+      needs.publish_container.result == 'success' &&
+      needs.deploy_documentation.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    environment: release
+
+    steps:
+      - name: Checkout Production Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download Package Artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: python-dist
+          path: dist
+
+      - name: Generate Release Notes from Changelog
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          awk -v heading="## [$VERSION] - " '
+            index($0, heading) == 1 { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' release_notes.md
+
+          if [ ! -s release_notes.md ]; then
+            echo "::error::No release notes found for $VERSION."
+            exit 1
+          fi
+
+          IMAGE_REPOSITORY="ghcr.io/${REPOSITORY,,}"
+          {
+            echo
+            echo "### Docker images"
+            echo
+            echo '```bash'
+            echo "docker run --rm -p 8000:8000 $IMAGE_REPOSITORY:$VERSION"
+            echo '```'
+            echo
+            echo '```bash'
+            echo "docker run --rm -e PERPLEXITY_SESSION_TOKEN=your_token $IMAGE_REPOSITORY:$VERSION-mcp"
+            echo '```'
+          } >> release_notes.md
+
+      - name: Create Immutable Tag and Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/$RELEASE_TAG" \
+              -f sha="$GITHUB_SHA"
+          fi
+          gh release create "$RELEASE_TAG" \
+            dist/*.whl \
+            dist/*.tar.gz \
+            dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TAG" \
+            --notes-file release_notes.md \
+            --verify-tag

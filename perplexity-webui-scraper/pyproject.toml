@@ -1,0 +1,200 @@
+[build-system]
+requires = [
+    "uv_build>=0.11.30,<0.12.0",
+]
+build-backend = "uv_build"
+
+[project]
+name = "perplexity-webui-scraper"
+version = "1.1.3"
+description = "An advanced, high-performance Python client, MCP server, and REST API for reverse-engineering Perplexity AI's WebUI."
+authors = [
+    { name = "Henrique Moreira", email = "78804989+henrique-coder@users.noreply.github.com" },
+]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.11, <3.15"
+keywords = [
+    "perplexity",
+    "ai",
+    "scraper",
+    "mcp",
+    "fastapi",
+    "openai-compatible",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "curl-cffi~=0.15.0",
+    "loguru~=0.7.0",
+    "orjson~=3.11.0",
+    "pydantic>=2.13.0, <3.0.0",
+    "typer~=0.27.0",
+]
+
+[project.optional-dependencies]
+cli = [
+    "cryptography>=49.0.0, <50.0.0",
+    "platformdirs~=4.11.0",
+    "pyperclip~=1.11.0",
+    "rich~=15.0.0",
+]
+api = [
+    "fastapi~=0.139.0",
+    "uvicorn[standard]~=0.51.0",
+]
+mcp = [
+    "fastmcp~=3.4.0",
+]
+all = [
+    "perplexity-webui-scraper[cli,api,mcp]",
+]
+
+[dependency-groups]
+dev = [
+    { include-group = "docs" },
+    { include-group = "lint" },
+    { include-group = "test" },
+    "prek~=0.4.10",
+]
+docs = [
+    "mkdocs~=1.6.0",
+    "mkdocs-material~=9.7.0",
+    "mkdocstrings[python]~=1.0.0",
+]
+lint = [
+    "ruff~=0.15.0",
+    "ty~=0.0.60",
+    "zizmor~=1.28.0",
+]
+test = [
+    "httpx~=0.28.0",
+    "pytest~=9.1.0",
+]
+
+[project.scripts]
+perplexity-webui-scraper = "perplexity_webui_scraper.cli.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/henrique-coder/perplexity-webui-scraper"
+Documentation = "https://github.com/henrique-coder/perplexity-webui-scraper#readme"
+Repository = "https://github.com/henrique-coder/perplexity-webui-scraper.git"
+Issues = "https://github.com/henrique-coder/perplexity-webui-scraper/issues"
+Discussions = "https://github.com/henrique-coder/perplexity-webui-scraper/discussions"
+Funding = "https://github.com/sponsors/henrique-coder"
+Security = "https://github.com/henrique-coder/perplexity-webui-scraper/security/policy"
+Changelog = "https://github.com/henrique-coder/perplexity-webui-scraper/releases"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "I",
+    "N",
+    "UP",
+    "ANN",
+    "FA",
+    "ICN",
+    "B",
+    "SIM",
+    "C4",
+    "PIE",
+    "ISC",
+    "RSE",
+    "RET",
+    "PTH",
+    "T20",
+    "TCH",
+    "G",
+    "LOG",
+    "TRY",
+    "ERA",
+    "PERF",
+    "FURB",
+    "PL",
+    "RUF",
+    "D",
+]
+ignore = [
+    "ISC001",
+    "TRY003",
+    "TRY301",
+    "G004",
+    "PLE1205",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PLR2004",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+    "D203",
+    "D213",
+    "ANN401",
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+force-sort-within-sections = true
+split-on-trailing-comma = true
+known-first-party = ["perplexity_webui_scraper"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+[tool.ruff.lint.flake8-annotations]
+suppress-none-returning = true
+allow-star-arg-any = true
+
+[tool.ty.rules]
+invalid-argument-type = "error"
+invalid-return-type = "error"
+missing-argument = "error"
+too-many-positional-arguments = "error"
+unresolved-attribute = "error"
+unresolved-import = "error"
+unsupported-operator = "error"
+possibly-missing-attribute = "warn"
+redundant-cast = "warn"
+unused-ignore-comment = "warn"
+division-by-zero = "warn"
+index-out-of-bounds = "warn"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
